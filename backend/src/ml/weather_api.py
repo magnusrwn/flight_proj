@@ -3,22 +3,33 @@ import logging
 import time
 from dataclasses import dataclass
 import asyncio
-from src.utils.helper import RequestWithRetryResponse, request_with_retry
 from pathlib import Path
-from logger_config import configure_logging
+import sys
 
+# Here evrything must be set to the project root. As when ran as an independant file, imports are relative, which causes pain.
+# This is easiest fix.
+PROJ_ROOT = Path(__file__).parents[3]
+sys.path.insert(0, str(PROJ_ROOT))
 
-DATA_DIR = Path(__file__).resolve().parents[2]
-LOG_DIR = Path(__file__).resolve().parents[2] + "/logs"
-AIRPORT_DATA_PATH = DATA_DIR / "airports_sorted.csv"
-OUTPUT_CSV = DATA_DIR / "weather_api_responses.csv"
+from backend.src.logger_config import configure_logging
+from backend.utils import request_with_retry, RequestWithRetryResponse
+
+DATA_DIR = PROJ_ROOT/"backend/data"
+OUTPUT_CSV = DATA_DIR / "output/flights_airports_weather.csv"
+
+LOG_DIR = Path(__file__).resolve().parents[2] / "logs"
+AIRPORTS_WITH_DATES_PATH = DATA_DIR / "airport/airport_data_for_weather_api.csv"
+
+with open(AIRPORTS_WITH_DATES_PATH, newline="") as f:
+    reader = csv.DictReader(f)
+    # Create data rows var
+    DATA_ROWS = list(reader)
 
 logger = logging.getLogger(__name__)
 
 BASE_API_URL = 'https://archive-api.open-meteo.com/v1/archive'
 
-# NOTE: CEHCK THESE IF NEEDED IN CODE
-DAILY_FIELDS = [
+API_DAILY_FIELDS = [
     "time",
     "weather_code",
     "temperature_2m_max",
@@ -41,26 +52,18 @@ DAILY_FIELDS = [
 
 FIELDNAMES = (
     ["latitude", "longitude"]
-    + [f"daily_units_{field}" for field in DAILY_FIELDS]
-    + [f"daily_{field}" for field in DAILY_FIELDS]
+    + [f"daily_units_{field}" for field in API_DAILY_FIELDS]
+    + [f"daily_{field}" for field in API_DAILY_FIELDS]
 )
 
-@dataclass
+@dataclass # For logger.
 class RunStats:
     enqueued: int = 0
     fetch_failed: int = 0
     written: int = 0
     write_failed: int = 0
 
-
-with open(AIRPORT_DATA_PATH, newline="") as f:
-    reader = csv.DictReader(f)
-    # Create data rows var
-    DATA_ROWS_IN = list(reader)
-
-async def fetch_weather_data(
-    queue: asyncio.Queue[RequestWithRetryResponse], date: str, long: str, lat: str, stats: RunStats
-):
+async def fetch_weather_data(queue: asyncio.Queue[RequestWithRetryResponse], date: str, long: str, lat: str, stats: RunStats):
     url = f"{BASE_API_URL}?latitude={lat}&longitude={long}&start_date={date}&end_date={date}&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,rain_sum,showers_sum,snowfall_sum,snow_depth_max,cloud_cover_mean,cloud_cover_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,pressure_msl_mean,visibility_mean&timezone=auto"
 
     try:
@@ -68,6 +71,7 @@ async def fetch_weather_data(
 
         await queue.put(response)
         stats.enqueued += 1
+        
     except Exception:
         stats.fetch_failed += 1
         logger.exception(
@@ -85,8 +89,7 @@ async def writer(queue: asyncio.Queue[RequestWithRetryResponse], stats: RunStats
         while True:
             item = await queue.get()
             try:
-                # Remember the structure of each resposne item from the api.
-                # If the response is a straight up error, then add it to the error count to be logged
+                # Assure responses
                 if item.error is not None:
                     stats.fetch_failed += 1
                     logger.warning("Skipping failed weather response: %s", item.error)
@@ -97,8 +100,8 @@ async def writer(queue: asyncio.Queue[RequestWithRetryResponse], stats: RunStats
                     logger.warning("Skipping weather response with no payload")
                     continue
 
+                # Extract payload on success
                 payload = item.success
-                daily_units = payload.get("daily_units", {})
                 daily = payload.get("daily", {})
 
                 # Each request is one date. Extract needed data from API repsonse
@@ -109,16 +112,9 @@ async def writer(queue: asyncio.Queue[RequestWithRetryResponse], stats: RunStats
                 }
                 row.update(
                     {
-                        f"daily_units_{field}": daily_units.get(field)
-                        for field in DAILY_FIELDS
-                    }
-                )
-                row.update(
-                    {
                         f"daily_{field}": values[0]
-                        if isinstance(values := daily.get(field), list) and values
-                        else values
-                        for field in DAILY_FIELDS
+                        if isinstance(values := daily.get(field), list) and values else values
+                        for field in API_DAILY_FIELDS
                     }
                 )
 
@@ -131,22 +127,24 @@ async def writer(queue: asyncio.Queue[RequestWithRetryResponse], stats: RunStats
                 queue.task_done()
 
 async def main():
+    # Prep logger
     configure_logging(LOG_DIR/"weather_api.log")
     started_at = time.monotonic()
     queue = asyncio.Queue()
     stats = RunStats()
-    logger.info("Starting weather-data run: input_rows=%d output=%s", len(DATA_ROWS_IN), OUTPUT_CSV)
+    logger.info("Starting weather-data run: input_rows=%d output=%s", len(DATA_ROWS), OUTPUT_CSV)
 
-    # Creates and starts tasks.
+    # Creates and starts API req tasks
     fetch_tasks = [
         asyncio.create_task(
-            fetch_weather_data(queue, rec["date"], rec["long"], rec["lat"], stats)
+            fetch_weather_data(queue, row["fl_date"], row["long"], row["lat"], stats)
         )
-        for rec in DATA_ROWS_IN
+        for row in DATA_ROWS
     ]
     
-    # Creates the writer to run async-ly
+    # Creates and starts the writer
     writer_task = asyncio.create_task(writer(queue, stats))
+
 
     await asyncio.gather(*fetch_tasks)
     # Ensure task count in queue is == 0
@@ -163,7 +161,9 @@ async def main():
         logger.info("Writer cancelled as expected.")
         pass
 
+    # Calculate the elapsed seconds
     elapsed_seconds = time.monotonic() - started_at
+    # Log it all
     logger.info(
         "Weather-data run complete: enqueued=%d written=%d fetch_failed=%d "
         "write_failed=%d elapsed_seconds=%.2f",
@@ -175,4 +175,5 @@ async def main():
     )
 
 # Run
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())

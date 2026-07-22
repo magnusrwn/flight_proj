@@ -28,7 +28,7 @@ async def request_with_retry(
     request_id: str | None = None,
 ) -> RequestWithRetryResponse:
     """Make an external HTTP request with retries for temporary failures."""
-    max_attempts = 5
+    max_attempts = 8
     retry_delay_seconds = 2
     retryable_statuses = {408, 429, 500, 502, 503, 504}
 
