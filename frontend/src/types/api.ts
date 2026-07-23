@@ -16,6 +16,7 @@ export type AirportMapPoint = {
   longitude?: number;
 };
 
+// Mock -- Base nothing oth this
 export type PredictionResponse = {
   lookup: {
     flightCode: string;

@@ -5,6 +5,7 @@ const API_BASE_URL =
 const PREDICTION_ENDPOINT =
   import.meta.env.VITE_PREDICTION_ENDPOINT?.trim() || "/predict";
 
+// Just one request from the frontend for the whole app
 export async function fetchPrediction(
   payload: FlightLookupRequest,
 ): Promise<PredictionResponse> {
