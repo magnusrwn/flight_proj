@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family:
+    "Space Grotesk",
+    "Avenir Next",
+    "Segoe UI",
+    sans-serif;
+  --color-ink: #09111d;
+  --color-paper: #f8f5ef;
+  --color-mist: #b8c2d1;
+  --color-surface: #132236;
+  --color-surface-soft: #1d3048;
+  --color-accent: #ffb84d;
+  --color-accent-soft: #ffdca2;
+  --color-good: #4dd0a4;
+  --color-alert: #ff7b7b;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 77, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(77, 208, 164, 0.08), transparent 18%),
+    var(--color-ink);
+}
+
+#root {
+  min-height: 100vh;
+}

@@ -6,6 +6,12 @@ All code in this repo is reviewed line by line to ensure I understand it, and th
 ## API's used
 - Open-meteo historical weather api: https://open-meteo.com/
 ## External data sources
-- [*Kaggle Dataset*] Flight data source: https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data
-- [*UN Dataset*] All Airports in the USA (airports dataset): https://data.humdata.org/dataset/ourairports-usa
-- [*Future Flights*] Info on the flight that will occur in the future (the one you want to predict): https://docs.apilayer.com/aviationstack/docs/api-documentation
+- Flight data source (untracked in this repo): https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data
+
+## Frontend scaffold
+- `frontend/` contains a single-page `Vite + React + TypeScript` app scaffold.
+- It currently expects a backend prediction endpoint at `POST /predict`.
+- Set frontend env vars in `frontend/.env` if needed:
+  - `VITE_API_BASE_URL=http://localhost:8000`
+  - `VITE_PREDICTION_ENDPOINT=/predict`
+- Planned map direction for later integration: `react-leaflet` with OpenStreetMap tiles.

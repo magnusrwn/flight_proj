@@ -1,0 +1,133 @@
+0 verbose cli /opt/homebrew/Cellar/node/23.11.0/bin/node /opt/homebrew/bin/npm
+1 info using npm@11.5.2
+2 info using node@v23.11.0
+3 silly config load:file:/opt/homebrew/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/magnusnewton/Desktop/code/storm_proj/frontend/.npmrc
+5 silly config load:file:/Users/magnusnewton/.npmrc
+6 silly config load:file:/opt/homebrew/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache" "--loglevel" "verbose"
+9 verbose logfile logs-max:10 dir:/Users/magnusnewton/Desktop/code/storm_proj/frontend/.npm-cache/_logs/2026-07-23T15_58_45_076Z-
+10 verbose logfile /Users/magnusnewton/Desktop/code/storm_proj/frontend/.npm-cache/_logs/2026-07-23T15_58_45_076Z-debug-0.log
+11 silly logfile done cleaning log files
+12 http fetch GET https://registry.npmjs.org/npm attempt 1 failed with ENOTFOUND
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 silly idealTree buildDeps
+15 silly fetch manifest react@^19.1.0
+16 silly packumentCache full:https://registry.npmjs.org/react cache-miss
+17 http fetch GET https://registry.npmjs.org/react attempt 1 failed with ENOTFOUND
+18 http fetch GET https://registry.npmjs.org/npm attempt 2 failed with ENOTFOUND
+19 http fetch GET https://registry.npmjs.org/react attempt 2 failed with ENOTFOUND
+20 http fetch GET https://registry.npmjs.org/npm attempt 3 failed with ENOTFOUND
+21 http fetch GET https://registry.npmjs.org/react attempt 3 failed with ENOTFOUND
+22 silly fetch manifest react-dom@^19.1.0
+23 silly packumentCache full:https://registry.npmjs.org/react-dom cache-miss
+24 http fetch GET https://registry.npmjs.org/react-dom attempt 1 failed with ENOTFOUND
+25 http fetch GET https://registry.npmjs.org/react-dom attempt 2 failed with ENOTFOUND
+26 http fetch GET https://registry.npmjs.org/react-dom attempt 3 failed with ENOTFOUND
+27 silly fetch manifest @eslint/js@^9.30.1
+28 silly packumentCache full:https://registry.npmjs.org/@eslint%2fjs cache-miss
+29 http fetch GET https://registry.npmjs.org/@eslint%2fjs attempt 1 failed with ENOTFOUND
+30 http fetch GET https://registry.npmjs.org/@eslint%2fjs attempt 2 failed with ENOTFOUND
+31 http fetch GET https://registry.npmjs.org/@eslint%2fjs attempt 3 failed with ENOTFOUND
+32 silly fetch manifest @tailwindcss/vite@^4.1.11
+33 silly packumentCache full:https://registry.npmjs.org/@tailwindcss%2fvite cache-miss
+34 http fetch GET https://registry.npmjs.org/@tailwindcss%2fvite attempt 1 failed with ENOTFOUND
+35 http fetch GET https://registry.npmjs.org/@tailwindcss%2fvite attempt 2 failed with ENOTFOUND
+36 http fetch GET https://registry.npmjs.org/@tailwindcss%2fvite attempt 3 failed with ENOTFOUND
+37 silly fetch manifest @types/react@^19.1.8
+38 silly packumentCache full:https://registry.npmjs.org/@types%2freact cache-miss
+39 http fetch GET https://registry.npmjs.org/@types%2freact attempt 1 failed with ENOTFOUND
+40 http fetch GET https://registry.npmjs.org/@types%2freact attempt 2 failed with ENOTFOUND
+41 http fetch GET https://registry.npmjs.org/@types%2freact attempt 3 failed with ENOTFOUND
+42 silly fetch manifest @types/react-dom@^19.1.6
+43 silly packumentCache full:https://registry.npmjs.org/@types%2freact-dom cache-miss
+44 http fetch GET https://registry.npmjs.org/@types%2freact-dom attempt 1 failed with ENOTFOUND
+45 http fetch GET https://registry.npmjs.org/@types%2freact-dom attempt 2 failed with ENOTFOUND
+46 http fetch GET https://registry.npmjs.org/@types%2freact-dom attempt 3 failed with ENOTFOUND
+47 silly fetch manifest @vitejs/plugin-react@^5.0.0
+48 silly packumentCache full:https://registry.npmjs.org/@vitejs%2fplugin-react cache-miss
+49 http fetch GET https://registry.npmjs.org/@vitejs%2fplugin-react attempt 1 failed with ENOTFOUND
+50 http fetch GET https://registry.npmjs.org/@vitejs%2fplugin-react attempt 2 failed with ENOTFOUND
+51 http fetch GET https://registry.npmjs.org/@vitejs%2fplugin-react attempt 3 failed with ENOTFOUND
+52 silly fetch manifest eslint@^9.30.1
+53 silly packumentCache full:https://registry.npmjs.org/eslint cache-miss
+54 http fetch GET https://registry.npmjs.org/eslint attempt 1 failed with ENOTFOUND
+55 http fetch GET https://registry.npmjs.org/eslint attempt 2 failed with ENOTFOUND
+56 http fetch GET https://registry.npmjs.org/eslint attempt 3 failed with ENOTFOUND
+57 silly fetch manifest eslint-plugin-react-hooks@^5.2.0
+58 silly packumentCache full:https://registry.npmjs.org/eslint-plugin-react-hooks cache-miss
+59 http fetch GET https://registry.npmjs.org/eslint-plugin-react-hooks attempt 1 failed with ENOTFOUND
+60 http fetch GET https://registry.npmjs.org/eslint-plugin-react-hooks attempt 2 failed with ENOTFOUND
+61 http fetch GET https://registry.npmjs.org/eslint-plugin-react-hooks attempt 3 failed with ENOTFOUND
+62 silly fetch manifest eslint-plugin-react-refresh@^0.4.20
+63 silly packumentCache full:https://registry.npmjs.org/eslint-plugin-react-refresh cache-miss
+64 http fetch GET https://registry.npmjs.org/eslint-plugin-react-refresh attempt 1 failed with ENOTFOUND
+65 http fetch GET https://registry.npmjs.org/eslint-plugin-react-refresh attempt 2 failed with ENOTFOUND
+66 http fetch GET https://registry.npmjs.org/eslint-plugin-react-refresh attempt 3 failed with ENOTFOUND
+67 silly fetch manifest globals@^16.3.0
+68 silly packumentCache full:https://registry.npmjs.org/globals cache-miss
+69 http fetch GET https://registry.npmjs.org/globals attempt 1 failed with ENOTFOUND
+70 http fetch GET https://registry.npmjs.org/globals attempt 2 failed with ENOTFOUND
+71 http fetch GET https://registry.npmjs.org/globals attempt 3 failed with ENOTFOUND
+72 silly fetch manifest tailwindcss@^4.1.11
+73 silly packumentCache full:https://registry.npmjs.org/tailwindcss cache-miss
+74 http fetch GET https://registry.npmjs.org/tailwindcss attempt 1 failed with ENOTFOUND
+75 http fetch GET https://registry.npmjs.org/tailwindcss attempt 2 failed with ENOTFOUND
+76 http fetch GET https://registry.npmjs.org/tailwindcss attempt 3 failed with ENOTFOUND
+77 silly fetch manifest typescript@~5.8.3
+78 silly packumentCache full:https://registry.npmjs.org/typescript cache-miss
+79 http fetch GET https://registry.npmjs.org/typescript attempt 1 failed with ENOTFOUND
+80 http fetch GET https://registry.npmjs.org/typescript attempt 2 failed with ENOTFOUND
+81 http fetch GET https://registry.npmjs.org/typescript attempt 3 failed with ENOTFOUND
+82 silly fetch manifest typescript-eslint@^8.35.1
+83 silly packumentCache full:https://registry.npmjs.org/typescript-eslint cache-miss
+84 http fetch GET https://registry.npmjs.org/typescript-eslint attempt 1 failed with ENOTFOUND
+85 http fetch GET https://registry.npmjs.org/typescript-eslint attempt 2 failed with ENOTFOUND
+86 http fetch GET https://registry.npmjs.org/typescript-eslint attempt 3 failed with ENOTFOUND
+87 silly fetch manifest vite@^7.0.4
+88 silly packumentCache full:https://registry.npmjs.org/vite cache-miss
+89 http fetch GET https://registry.npmjs.org/vite attempt 1 failed with ENOTFOUND
+90 http fetch GET https://registry.npmjs.org/vite attempt 2 failed with ENOTFOUND
+91 http fetch GET https://registry.npmjs.org/vite attempt 3 failed with ENOTFOUND
+92 silly placeDep ROOT @eslint/js@ OK for: storm-proj-frontend@0.0.0 want: ^9.30.1
+93 silly placeDep ROOT @tailwindcss/vite@ OK for: storm-proj-frontend@0.0.0 want: ^4.1.11
+94 silly placeDep ROOT @types/react@ OK for: storm-proj-frontend@0.0.0 want: ^19.1.8
+95 silly placeDep ROOT @types/react-dom@ OK for: storm-proj-frontend@0.0.0 want: ^19.1.6
+96 silly placeDep ROOT @vitejs/plugin-react@ OK for: storm-proj-frontend@0.0.0 want: ^5.0.0
+97 silly placeDep ROOT eslint@ OK for: storm-proj-frontend@0.0.0 want: ^9.30.1
+98 silly placeDep ROOT eslint-plugin-react-hooks@ OK for: storm-proj-frontend@0.0.0 want: ^5.2.0
+99 silly placeDep ROOT eslint-plugin-react-refresh@ OK for: storm-proj-frontend@0.0.0 want: ^0.4.20
+100 silly placeDep ROOT globals@ OK for: storm-proj-frontend@0.0.0 want: ^16.3.0
+101 silly placeDep ROOT react@ OK for: storm-proj-frontend@0.0.0 want: ^19.1.0
+102 silly placeDep ROOT react-dom@ OK for: storm-proj-frontend@0.0.0 want: ^19.1.0
+103 silly placeDep ROOT tailwindcss@ OK for: storm-proj-frontend@0.0.0 want: ^4.1.11
+104 silly placeDep ROOT typescript@ OK for: storm-proj-frontend@0.0.0 want: ~5.8.3
+105 silly placeDep ROOT typescript-eslint@ OK for: storm-proj-frontend@0.0.0 want: ^8.35.1
+106 silly placeDep ROOT vite@ OK for: storm-proj-frontend@0.0.0 want: ^7.0.4
+107 verbose type system
+108 verbose stack FetchError: request to https://registry.npmjs.org/@eslint%2fjs failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org
+108 verbose stack     at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/npm/node_modules/minipass-fetch/lib/index.js:130:14)
+108 verbose stack     at ClientRequest.emit (node:events:507:28)
+108 verbose stack     at emitErrorEvent (node:_http_client:104:11)
+108 verbose stack     at _destroy (node:_http_client:898:9)
+108 verbose stack     at onSocketNT (node:_http_client:918:5)
+108 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+109 error code ENOTFOUND
+110 error syscall getaddrinfo
+111 error errno ENOTFOUND
+112 error network request to https://registry.npmjs.org/@eslint%2fjs failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org
+113 error network This is a problem related to network connectivity.
+113 error network In most cases you are behind a proxy or have bad network settings.
+113 error network
+113 error network If you are behind a proxy, please make sure that the
+113 error network 'proxy' config is set properly.  See: 'npm help config'
+114 silly unfinished npm timer reify 1784822325179
+115 silly unfinished npm timer reify:loadTrees 1784822325180
+116 verbose cwd /Users/magnusnewton/Desktop/code/storm_proj/frontend
+117 verbose os Darwin 25.5.0
+118 verbose node v23.11.0
+119 verbose npm  v11.5.2
+120 verbose exit 1
+121 verbose code 1
+122 error A complete log of this run can be found in: /Users/magnusnewton/Desktop/code/storm_proj/frontend/.npm-cache/_logs/2026-07-23T15_58_45_076Z-debug-0.log
