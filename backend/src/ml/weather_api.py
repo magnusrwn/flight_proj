@@ -1,4 +1,5 @@
-# NOTE: Migrate everything to SQL for this step and beyond
+# NOTE: USE SQL (mock with duckdb)
+# Keeping this here for rough flow.
 
 # import csv
 # import logging
