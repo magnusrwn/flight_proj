@@ -11,7 +11,11 @@ class DataPipelineErrorResponse(BaseModel):
     error:  dict | list | None = None
     exceptions: list[str] | None = None
 
-def create_and_clean_flights_table(con:ddb.DuckDBPyConnection, table_name:str, flight_data_path:Path|str) -> DataPipelineErrorResponse | DataPipelineSuccessResponse:
+def create_and_clean_flights_table(
+    con:ddb.DuckDBPyConnection,
+    table_name:str,
+    flight_data_path:Path|str
+) -> DataPipelineErrorResponse | DataPipelineSuccessResponse:
     """
     *The csv MUST fit the shape of/be the flights dataset specified in project docs, and in the pipelile process*
     
@@ -51,7 +55,11 @@ def create_and_clean_flights_table(con:ddb.DuckDBPyConnection, table_name:str, f
         data=table_description.to_dict(orient='records')
     )
 
-def create_and_clean_airport_table(con:ddb.DuckDBPyConnection, table_name:str, airport_data_path:Path|str) -> DataPipelineErrorResponse | DataPipelineSuccessResponse:
+def create_and_clean_airport_table(
+    con:ddb.DuckDBPyConnection,
+    table_name:str,
+    airport_data_path:Path|str
+) -> DataPipelineErrorResponse | DataPipelineSuccessResponse:
     """
     *The csv data MUST fit the shape of/ be the airprots dataset specified in project docs and in the pipeline process*
     
@@ -86,3 +94,7 @@ def create_and_clean_airport_table(con:ddb.DuckDBPyConnection, table_name:str, a
         message=f"Successfully created and cleaned airport data under table name: {table_name}",
         data=table_description.to_dict(orient='records')
     )
+
+def create_weather_req_locations(con:ddb.DuckDBPyConnection):
+    
+    pass
