@@ -12,6 +12,9 @@ wheels/
 # The .env
 .env
 
+# duckdb local
+.duckdb
+
 # Data folder:
 backend/data
 backend/logs
