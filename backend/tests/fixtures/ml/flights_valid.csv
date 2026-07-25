@@ -1,0 +1,4 @@
+fl_date,op_carrier_fl_num,origin,origin_city_name,dest,dest_city_name,crs_dep_time,crs_arr_time,crs_elapsed_time,distance
+2024-01-01,101.0,JFK,"New York, NY",LAX,"Los Angeles, CA",700,1000,360.0,2475
+2024-01-01,102.0,LAX,"Los Angeles, CA",SEA,"Seattle, WA",1100,1330,150.0,954
+2024-01-01,103.0,JFK,"New York, NY",LAX,"Los Angeles, CA",1400,1700,360.0,2475
