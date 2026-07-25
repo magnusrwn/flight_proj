@@ -3,9 +3,11 @@ from datetime import date, datetime
 from pathlib import Path
 from types import UnionType
 from typing import Any, get_args, get_origin
-
 from pydantic import BaseModel
+import sys
 
+BACKEND_SRC_PATH = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BACKEND_SRC_PATH))
 from models.base_models import (
     CleanedAirportDuckDBTableCols,
     CleanedFlightDuckDBTableCols,

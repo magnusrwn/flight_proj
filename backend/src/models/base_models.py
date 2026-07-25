@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import date
 from pydantic import BaseModel
 
 
 class CleanedFlightDuckDBTableCols(BaseModel):
-    date: str | datetime
-    flight_number: float 
+    date: date
+    flight_number: float
     origin: str
     origin_city_name: str
     dest: str
@@ -16,6 +16,13 @@ class CleanedFlightDuckDBTableCols(BaseModel):
 
 class CleanedAirportDuckDBTableCols(BaseModel):
     name: str
-    lat:  float
+    lat: float
     long: float
     code: str
+
+class WeatherRequestDuckDBTableCols(BaseModel):
+    date: date
+    code: str
+    name: str
+    lat: float
+    long: float
