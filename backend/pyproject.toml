@@ -1,11 +1,12 @@
 [project]
-name = "storm-proj"
+name = "flight-proj"
 version = "0.1.0"
-description = "Map live weather predictions to a map"
+description = "Predicts flight delay with real flights"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "dotenv>=0.9.9",
+    "duckdb>=1.5.5",
     "fastapi>=0.139.0",
     "httpx>=0.28.1",
     "openmeteo-requests>=1.7.5",
@@ -14,5 +15,6 @@ dependencies = [
     "pymysql>=1.2.0",
     "scikit-learn>=1.9.0",
     "sqlalchemy>=2.0.51",
+    "sqlmodel>=0.0.39",
     "uvicorn>=0.51.0",
 ]

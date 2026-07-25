@@ -1,0 +1,2 @@
+fl_date,origin,origin_city_name,dest,dest_city_name,crs_dep_time,crs_arr_time,crs_elapsed_time,distance
+2024-01-01,JFK,"New York, NY",LAX,"Los Angeles, CA",700,1000,360.0,2475

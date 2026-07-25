@@ -6,4 +6,5 @@ All code in this repo is reviewd line by line to ensure I understand it. This is
 ## API's used
 - Open-meteo historical weather api: https://open-meteo.com/
 ## External data sources
-- Flight data source (untracked in this repo): https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data
+- [*Kaggle Dataset*] Flight data source: https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data
+- [*UN Dataset*] All Airports in the USA (airports dataset): https://data.humdata.org/dataset/ourairports-usa
