@@ -2,19 +2,19 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class CleanedFlightDuckDBTable(BaseModel):
-    fl_date: str | datetime
-    op_carrier_fl_num: float 
+class CleanedFlightDuckDBTableCols(BaseModel):
+    date: str | datetime
+    flight_number: float 
     origin: str
     origin_city_name: str
     dest: str
     dest_city_name: str
-    crs_dep_time: int
-    crs_arr_time: int
-    crs_elapsed_time: float
+    pred_dep_time: int
+    pred_arr_time: int
+    pred_elapsed_time: float
     distance: float
 
-class CleanedAirportDuckDBTable(BaseModel):
+class CleanedAirportDuckDBTableCols(BaseModel):
     name: str
     lat:  float
     long: float
