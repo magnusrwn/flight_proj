@@ -3,7 +3,6 @@ from pathlib import Path
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-# setting the project root as the sys stuff
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.src.ml.weather_api_data_pipeline_funcs import run_weather_backfill

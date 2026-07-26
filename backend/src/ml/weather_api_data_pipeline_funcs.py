@@ -8,6 +8,10 @@ from typing import Any
 import duckdb as ddb
 from backend.src.utils import request_with_retry, RequestWithRetryResponse
 import logging
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +68,7 @@ def build_weather_request_url(lat: float, lon: float, date: date) -> str:
         ),
         "timezone": "auto",
     }
-    return f"{OPEN_METEO_ARCHIVE_URL}?{urlencode(params)}"
+    return f"{OPEN_METEO_ARCHIVE_URL}?{urlencode(params)}&apikey={os.getenv("OPEN_METEO_API_KEY")}"
 
 def claim_next_batch(con:ddb.DuckDBPyConnection, *, batch_size: int) -> list[dict[str, Any]]:
     rows = con.execute(
