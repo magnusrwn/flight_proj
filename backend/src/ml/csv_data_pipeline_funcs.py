@@ -49,7 +49,6 @@ def _normalise_duckdb_type(type_name: str) -> str:
         normalised = normalised.split("(", 1)[0].strip()
     return normalised
 
-
 def _expected_schema_from_model(model: type[BaseModel]) -> list[tuple[str, set[str]]]:
     expected_schema: list[tuple[str, set[str]]] = []
     for field_name, field_info in model.model_fields.items():
@@ -80,7 +79,6 @@ def _expected_schema_from_model(model: type[BaseModel]) -> list[tuple[str, set[s
         expected_schema.append((field_name, allowed_types))
     return expected_schema
 
-
 def _validate_table_schema(
     table_name: str,
     table_description: list[dict[str, Any]],
@@ -109,12 +107,10 @@ def _validate_table_schema(
                 f"expected one of {sorted(expected_types)} from model '{model.__name__}'."
             )
 
-
 def _ensure_table_not_empty(con: ddb.DuckDBPyConnection, table_name: str) -> None:
     row_count = con.sql(f"SELECT COUNT(*) AS row_count FROM {table_name}").fetchone()[0]
     if row_count == 0:
         raise TableInvariantError(f"Table '{table_name}' is empty.")
-
 
 def _ensure_non_null_key_columns(
     con: ddb.DuckDBPyConnection,
@@ -158,6 +154,11 @@ def create_and_clean_flights_table(
                 CAST(crs_elapsed_time AS DOUBLE) AS pred_elapsed_time,
                 CAST(distance AS DOUBLE) AS distance
             FROM read_csv_auto('{flight_data_path}')
+            WHERE
+                fl_date IS NOT NULL
+                AND op_carrier_fl_num IS NOT NULL
+                AND origin IS NOT NULL
+                AND dest IS NOT NULL
         """)
     except Exception as e:
         raise CsvTableBuildError(
