@@ -240,7 +240,7 @@ def create_and_clean_airport_table(
         data=table_description_records
     )
 
-def create_weather_req_locations(
+def create_weather_req_table(
     con: ddb.DuckDBPyConnection,
     flight_table_name: str = "flight_data_sample",
     airport_table_name: str = "airport_data",
@@ -263,7 +263,11 @@ def create_weather_req_locations(
                 ad.code,
                 a.name,
                 a.lat,
-                a.long
+                a.long,
+                CAST('pending' AS VARCHAR) AS status,
+                CAST(0 AS INTEGER) AS attempt_count,
+                CAST(NULL AS VARCHAR) AS last_error,
+                CURRENT_TIMESTAMP AS updated_at
             FROM airport_date AS ad
             JOIN {airport_table_name} a
                 ON ad.code = a.code

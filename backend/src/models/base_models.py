@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel
 
 
@@ -26,3 +26,7 @@ class WeatherRequestDuckDBTableCols(BaseModel):
     name: str
     lat: float
     long: float
+    status: str
+    attempt_count: int
+    last_error: str | None
+    updated_at: datetime
