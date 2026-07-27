@@ -15,7 +15,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-OPEN_METEO_ARCHIVE_URL = "https://customer-api.open-meteo.com/v1/archive"
+OPEN_METEO_ARCHIVE_URL = "https://customer-archive-api.open-meteo.com/v1/archive"
 QUEUE_TABLE_NAME = "weather_req_table"
 RAW_TABLE_NAME= "weather_response_raw"
 
@@ -56,14 +56,11 @@ def build_weather_request_url(lat: float, lon: float, date: date) -> str:
                 "rain_sum",
                 "showers_sum",
                 "snowfall_sum",
-                "snow_depth_max",
                 "cloud_cover_mean",
-                "cloud_cover_max",
                 "wind_speed_10m_max",
                 "wind_gusts_10m_max",
                 "wind_direction_10m_dominant",
                 "pressure_msl_mean",
-                "visibility_mean",
             ]
         ),
         "timezone": "auto",
