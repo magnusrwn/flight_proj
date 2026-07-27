@@ -15,7 +15,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+OPEN_METEO_ARCHIVE_URL = "https://customer-api.open-meteo.com/v1/archive"
 QUEUE_TABLE_NAME = "weather_req_table"
 RAW_TABLE_NAME= "weather_response_raw"
 
