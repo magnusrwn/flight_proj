@@ -65,7 +65,7 @@ def build_weather_request_url(lat: float, lon: float, date: date) -> str:
         ),
         "timezone": "auto",
     }
-    return f"{OPEN_METEO_ARCHIVE_URL}?{urlencode(params)}&apikey={os.getenv("OPEN_METEO_API_KEY")}"
+    return f"{OPEN_METEO_ARCHIVE_URL}?{urlencode(params)}&apikey={os.getenv('OPEN_METEO_API_KEY')}"
 
 def claim_next_batch(con:ddb.DuckDBPyConnection, *, batch_size: int) -> list[dict[str, Any]]:
     rows = con.execute(
@@ -276,3 +276,63 @@ async def run_weather_backfill(
             stats.failed_fetch,
             stats.failed_write
         )
+
+
+def create_model_dataset(duck_db_path: str | Path) -> None:
+    con: ddb.DuckDBPyConnection | None = None
+    try:
+        con = ddb.connect(str(duck_db_path))
+
+        logger.info("STARTING RAW_FLIGHT_DATA_MERGE")
+
+        con.sql("""
+            CREATE OR REPLACE TABLE model_dataset AS
+            SELECT
+                f.date AS flight_date,
+                f.origin AS origin,
+                f.dest AS dest,
+
+                CAST(origin_weather.payload->'daily'->'weather_code'->>0 AS DOUBLE) AS origin_weather_code,
+                CAST(origin_weather.payload->'daily'->'temperature_2m_max'->>0 AS DOUBLE) AS origin_temperature_2m_max,
+                CAST(origin_weather.payload->'daily'->'temperature_2m_min'->>0 AS DOUBLE) AS origin_temperature_2m_min,
+                CAST(origin_weather.payload->'daily'->'apparent_temperature_max'->>0 AS DOUBLE) AS origin_apparent_temperature_max,
+                CAST(origin_weather.payload->'daily'->'apparent_temperature_min'->>0 AS DOUBLE) AS origin_apparent_temperature_min,
+                CAST(origin_weather.payload->'daily'->'precipitation_sum'->>0 AS DOUBLE) AS origin_precipitation_sum,
+                CAST(origin_weather.payload->'daily'->'rain_sum'->>0 AS DOUBLE) AS origin_rain_sum,
+                CAST(origin_weather.payload->'daily'->'showers_sum'->>0 AS DOUBLE) AS origin_showers_sum,
+                CAST(origin_weather.payload->'daily'->'snowfall_sum'->>0 AS DOUBLE) AS origin_snowfall_sum,
+                CAST(origin_weather.payload->'daily'->'cloud_cover_mean'->>0 AS DOUBLE) AS origin_cloud_cover_mean,
+                CAST(origin_weather.payload->'daily'->'wind_speed_10m_max'->>0 AS DOUBLE) AS origin_wind_speed_10m_max,
+                CAST(origin_weather.payload->'daily'->'wind_gusts_10m_max'->>0 AS DOUBLE) AS origin_wind_gusts_10m_max,
+                CAST(origin_weather.payload->'daily'->'wind_direction_10m_dominant'->>0 AS DOUBLE) AS origin_wind_direction_10m_dominant,
+                CAST(origin_weather.payload->'daily'->'pressure_msl_mean'->>0 AS DOUBLE) AS origin_pressure_msl_mean,
+
+                CAST(dest_weather.payload->'daily'->'weather_code'->>0 AS DOUBLE) AS dest_weather_code,
+                CAST(dest_weather.payload->'daily'->'temperature_2m_max'->>0 AS DOUBLE) AS dest_temperature_2m_max,
+                CAST(dest_weather.payload->'daily'->'temperature_2m_min'->>0 AS DOUBLE) AS dest_temperature_2m_min,
+                CAST(dest_weather.payload->'daily'->'apparent_temperature_max'->>0 AS DOUBLE) AS dest_apparent_temperature_max,
+                CAST(dest_weather.payload->'daily'->'apparent_temperature_min'->>0 AS DOUBLE) AS dest_apparent_temperature_min,
+                CAST(dest_weather.payload->'daily'->'precipitation_sum'->>0 AS DOUBLE) AS dest_precipitation_sum,
+                CAST(dest_weather.payload->'daily'->'rain_sum'->>0 AS DOUBLE) AS dest_rain_sum,
+                CAST(dest_weather.payload->'daily'->'showers_sum'->>0 AS DOUBLE) AS dest_showers_sum,
+                CAST(dest_weather.payload->'daily'->'snowfall_sum'->>0 AS DOUBLE) AS dest_snowfall_sum,
+                CAST(dest_weather.payload->'daily'->'cloud_cover_mean'->>0 AS DOUBLE) AS dest_cloud_cover_mean,
+                CAST(dest_weather.payload->'daily'->'wind_speed_10m_max'->>0 AS DOUBLE) AS dest_wind_speed_10m_max,
+                CAST(dest_weather.payload->'daily'->'wind_gusts_10m_max'->>0 AS DOUBLE) AS dest_wind_gusts_10m_max,
+                CAST(dest_weather.payload->'daily'->'wind_direction_10m_dominant'->>0 AS DOUBLE) AS dest_wind_direction_10m_dominant,
+                CAST(dest_weather.payload->'daily'->'pressure_msl_mean'->>0 AS DOUBLE) AS dest_pressure_msl_mean
+            FROM flight_data AS f
+            LEFT JOIN weather_response_raw AS origin_weather
+                ON origin_weather.date = f.date
+                AND origin_weather.code = f.origin
+            LEFT JOIN weather_response_raw AS dest_weather
+                ON dest_weather.date = f.date
+                AND dest_weather.code = f.dest
+        """)
+
+        row_count = con.sql("SELECT COUNT(*) FROM model_dataset").fetchone()[0]
+        logger.info("created model_dataset with %s rows", row_count)
+    finally:
+        if con is not None:
+            con.close()
+            logger.info("Duckdb closed. Data ready for training")
