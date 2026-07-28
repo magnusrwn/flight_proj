@@ -277,7 +277,6 @@ async def run_weather_backfill(
             stats.failed_write
         )
 
-
 def create_model_dataset(duck_db_path: str | Path) -> None:
     con: ddb.DuckDBPyConnection | None = None
     try:
@@ -285,12 +284,21 @@ def create_model_dataset(duck_db_path: str | Path) -> None:
 
         logger.info("STARTING RAW_FLIGHT_DATA_MERGE")
 
+        con.sql("SET threads=1")
         con.sql("""
             CREATE OR REPLACE TABLE model_dataset AS
             SELECT
-                f.date AS flight_date,
+                f.date AS date,
+                f.flight_number AS flight_num,
                 f.origin AS origin,
+                f.origin_city_name AS origin_city_name,
                 f.dest AS dest,
+                f.dest_city_name AS dest_city_name,
+                f.pred_dep_time AS pred_dep_time,
+                f.pred_arr_time AS pred_arr_time,
+                f.pred_elapsed_time AS pred_elapsed_time,
+                f.distance AS fl_distance,
+                f.total_delay AS delay,
 
                 CAST(origin_weather.payload->'daily'->'weather_code'->>0 AS DOUBLE) AS origin_weather_code,
                 CAST(origin_weather.payload->'daily'->'temperature_2m_max'->>0 AS DOUBLE) AS origin_temperature_2m_max,

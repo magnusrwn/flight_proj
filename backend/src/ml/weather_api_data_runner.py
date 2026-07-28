@@ -20,6 +20,7 @@ async def main() -> None:
     print(stats)
 
     create_model_dataset(BACKEND_ROOT / "data/duck_database.duckdb")
+    print("Process finished")
 
 if __name__ == "__main__":
     asyncio.run(main())
