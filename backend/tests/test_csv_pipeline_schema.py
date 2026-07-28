@@ -24,6 +24,7 @@ class SchemaValidationTests(unittest.TestCase):
             {"column_name": "pred_arr_time", "column_type": "BIGINT"},
             {"column_name": "pred_elapsed_time", "column_type": "DOUBLE"},
             {"column_name": "distance", "column_type": "DOUBLE"},
+            {"column_name": "total_delay", "column_type": "DOUBLE"},
         ]
 
         _validate_table_schema("flight_data", schema, CleanedFlightDuckDBTableCols)
@@ -49,6 +50,7 @@ class SchemaValidationTests(unittest.TestCase):
             {"column_name": "pred_arr_time", "column_type": "BIGINT"},
             {"column_name": "pred_elapsed_time", "column_type": "DOUBLE"},
             {"column_name": "distance", "column_type": "DOUBLE"},
+            {"column_name": "total_delay", "column_type": "DOUBLE"},
         ]
 
         with self.assertRaises(TableSchemaMismatchError):
@@ -66,6 +68,7 @@ class SchemaValidationTests(unittest.TestCase):
             {"column_name": "pred_arr_time", "column_type": "BIGINT"},
             {"column_name": "pred_elapsed_time", "column_type": "DOUBLE"},
             {"column_name": "distance", "column_type": "DOUBLE"},
+            {"column_name": "total_delay", "column_type": "DOUBLE"},
         ]
 
         with self.assertRaises(TableSchemaMismatchError):

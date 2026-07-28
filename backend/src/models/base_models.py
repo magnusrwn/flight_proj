@@ -13,6 +13,7 @@ class CleanedFlightDuckDBTableCols(BaseModel):
     pred_arr_time: int
     pred_elapsed_time: float
     distance: float
+    total_delay: float
 
 class CleanedAirportDuckDBTableCols(BaseModel):
     name: str

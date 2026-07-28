@@ -13,7 +13,7 @@ from ml.csv_data_pipeline_funcs import (
     CsvTableBuildError,
     create_and_clean_airport_table,
     create_and_clean_flights_table,
-    create_weather_req_locations,
+    create_weather_req_table,
 )
 
 
@@ -59,7 +59,7 @@ class CsvPipelineIntegrationTests(unittest.TestCase):
             FIXTURE_DIR / "airports_valid.csv",
         )
 
-        response = create_weather_req_locations(self.con, "flight_data_sample", "airport_data")
+        response = create_weather_req_table(self.con, "flight_data_sample", "airport_data")
 
         self.assertIn("Successfully created", response.message)
         self.assertEqual(3, self.con.sql("SELECT COUNT(*) FROM weather_req_table").fetchone()[0])
