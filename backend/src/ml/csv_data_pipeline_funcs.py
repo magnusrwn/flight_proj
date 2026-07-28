@@ -152,7 +152,12 @@ def create_and_clean_flights_table(
                 CAST(crs_dep_time AS BIGINT) AS pred_dep_time,
                 CAST(crs_arr_time AS BIGINT) AS pred_arr_time,
                 CAST(crs_elapsed_time AS DOUBLE) AS pred_elapsed_time,
-                CAST(distance AS DOUBLE) AS distance
+                CAST(distance AS DOUBLE) AS distance,
+                CAST(carrier_delay AS DOUBLE)
+                + CAST(weather_delay AS DOUBLE)
+                + CAST(nas_delay AS DOUBLE)
+                + CAST(security_delay AS DOUBLE)
+                + CAST(late_aircraft_delay AS DOUBLE) AS total_delay
             FROM read_csv_auto('{flight_data_path}')
             WHERE
                 fl_date IS NOT NULL
