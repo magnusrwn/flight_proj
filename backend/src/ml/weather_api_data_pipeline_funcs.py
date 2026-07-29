@@ -288,7 +288,8 @@ def create_model_dataset(duck_db_path: str | Path) -> None:
         con.sql("""
             CREATE OR REPLACE TABLE model_dataset AS
             SELECT
-                f.date AS date,
+                row_number() OVER () AS id,
+                f.date AS flight_date,
                 f.flight_number AS flight_num,
                 f.origin AS origin,
                 f.origin_city_name AS origin_city_name,
@@ -329,6 +330,7 @@ def create_model_dataset(duck_db_path: str | Path) -> None:
                 CAST(dest_weather.payload->'daily'->'wind_gusts_10m_max'->>0 AS DOUBLE) AS dest_wind_gusts_10m_max,
                 CAST(dest_weather.payload->'daily'->'wind_direction_10m_dominant'->>0 AS DOUBLE) AS dest_wind_direction_10m_dominant,
                 CAST(dest_weather.payload->'daily'->'pressure_msl_mean'->>0 AS DOUBLE) AS dest_pressure_msl_mean
+
             FROM flight_data AS f
             LEFT JOIN weather_response_raw AS origin_weather
                 ON origin_weather.date = f.date
