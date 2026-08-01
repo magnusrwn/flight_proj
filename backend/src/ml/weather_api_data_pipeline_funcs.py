@@ -290,10 +290,10 @@ def create_model_dataset(duck_db_path: str | Path) -> None:
             SELECT
                 row_number() OVER () AS id,
                 f.date AS flight_date,
-                f.year AS year
-                f.month AS month
-                f.day_of_month AS day_of_month
-                f.day_of_week AS day_of_week
+                f.year AS year,
+                f.month AS month,
+                f.day_of_month AS day_of_month,
+                f.day_of_week AS day_of_week,
                 f.flight_number AS flight_num,
                 f.origin AS origin,
                 f.origin_city_name AS origin_city_name,
