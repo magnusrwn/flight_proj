@@ -4,6 +4,10 @@ from pydantic import BaseModel
 
 class CleanedFlightDuckDBTableCols(BaseModel):
     date: date
+    year: int
+    month: int
+    day_of_month: int
+    day_of_week: int
     flight_number: float
     origin: str
     origin_city_name: str

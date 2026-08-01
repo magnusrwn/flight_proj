@@ -144,6 +144,10 @@ def create_and_clean_flights_table(
             CREATE OR REPLACE TABLE {table_name} AS
             SELECT
                 CAST(fl_date AS DATE) AS date,
+                CAST(year AS INT) AS year,
+                CAST(month AS INT) AS month,
+                CAST(day_of_month AS INT) AS day_of_month,
+                CAST(day_of_week AS INT) AS day_of_week,
                 CAST(op_carrier_fl_num AS DOUBLE) AS flight_number,
                 CAST(origin AS VARCHAR) AS origin,
                 CAST(origin_city_name AS VARCHAR) AS origin_city_name,
