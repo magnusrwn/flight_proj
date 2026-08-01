@@ -10,14 +10,14 @@ from backend.src.ml.weather_api_data_pipeline_funcs import run_weather_backfill,
 from backend.src.logger_config import configure_logging
 
 async def main() -> None:
-    # configure_logging(BACKEND_ROOT / "logs/weather_ingestion.log")
+    configure_logging(BACKEND_ROOT / "logs/weather_ingestion.log")
 
-    # stats = await run_weather_backfill(
-    #     duckdb_path=BACKEND_ROOT / "data/duck_database.duckdb",
-    #     batch_size=50,
-    #     concurrency=10,
-    # )
-    # print(stats)
+    stats = await run_weather_backfill(
+        duckdb_path=BACKEND_ROOT / "data/duck_database.duckdb",
+        batch_size=50,
+        concurrency=10,
+    )
+    print(stats)
 
     create_model_dataset(BACKEND_ROOT / "data/duck_database.duckdb")
     print("Process finished")
