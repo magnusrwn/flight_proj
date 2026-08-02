@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CleanedFlightDuckDBTableCols(BaseModel):
@@ -35,3 +35,7 @@ class WeatherRequestDuckDBTableCols(BaseModel):
     attempt_count: int
     last_error: str | None
     updated_at: datetime
+
+class SendFlightNumberRequest(BaseModel):
+    iataCode: str = Field(max_length=3, min_length=3)
+    date: datetime
