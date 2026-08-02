@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 import unittest
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if BACKEND_ROOT not in sys.path:
@@ -14,10 +14,6 @@ from src.models.base_models import SendFlightNumberRequest
 
 class BaseModelError(Exception):
     """Base exception for pydantic BaseModel faliures"""
-class BaseModelDatatypeMismatchError(BaseModelError):
-    """Raised when datatypes do not match the BaseModel"""
-class BaseModelFieldNameError(BaseModelError):
-    """Raised when field names do not match BaseModel"""
 class BaseModelFieldCountError(BaseModelError):
     """Raised when field count exceeds the number of fields in the BaseModel"""
 
@@ -56,7 +52,6 @@ def collect_model_path(model: type[BaseModel], paths=None, path="") -> set[str]:
             collect_model_path(model=f_info, paths=paths, path=model_path)
     return paths
 
-
 def test_field_numbers(schema:list[dict[str, Any]], base_model:type[BaseModel]) -> None:
     schema_explored_set = collect_schema_path(item=schema)
     model_explored_set = collect_model_path(model=base_model)
@@ -64,17 +59,32 @@ def test_field_numbers(schema:list[dict[str, Any]], base_model:type[BaseModel]) 
     if len(schema_explored_set) != len(model_explored_set):
         raise BaseModelFieldCountError
 
-
+def test_schema_fields(schema:list[dict[str, Any]], base_model:type[BaseModel]):
+    for i in schema:
+        base_model(**i)
 
 # Test
 class BaseModelTests(unittest.TestCase):
-    def test_count_field(self) -> None:
+    def test_field_count(self) -> None:
         schema = [
             {"iataCode":"EDI","data":"2026-08-29"},
         ]
 
         with self.assertRaises(BaseModelFieldCountError):
             test_field_numbers(schema, SendFlightNumberRequest)
+
+    def test_fields(self) -> None:
+        schema = [
+            {"iataCode":"EDI", "date":"2026-08-29", "car":"no"},
+            {"iataCode":"LYS", "date":"2026-08-29"}
+        ]
+
+        with self.assertRaises(ValidationError) as ctx:
+            test_schema_fields(schema, SendFlightNumberRequest)
+
+        # Uncomment when you want to test for specific errs
+        # errors = ctx.exception.errors()
+        # self.assertEqual(errors[0]["loc"], ("car",))
 
 
 if __name__ == '__main__':
