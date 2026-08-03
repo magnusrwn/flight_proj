@@ -8,9 +8,8 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if BACKEND_ROOT not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-print(sys.path[0])
+from src.models.base_models import SendFlightRequest
 
-from src.models.base_models import SendFlightNumberRequest
 
 class BaseModelError(Exception):
     """Base exception for pydantic BaseModel faliures"""
@@ -67,20 +66,20 @@ def test_schema_fields(schema:list[dict[str, Any]], base_model:type[BaseModel]):
 class BaseModelTests(unittest.TestCase):
     def test_field_count(self) -> None:
         schema = [
-            {"iataCode":"EDI","data":"2026-08-29"},
+            {"depIataCode":"EDI","data":"2026-08-29"},
         ]
 
         with self.assertRaises(BaseModelFieldCountError):
-            test_field_numbers(schema, SendFlightNumberRequest)
+            test_field_numbers(schema, SendFlightRequest)
 
     def test_fields(self) -> None:
         schema = [
-            {"iataCode":"EDI", "date":"2026-08-29", "car":"no"},
-            {"iataCode":"LYS", "date":"2026-08-29"}
+            {"depIataCode":"EDI", "date":"2026-08-29", "car":"no"},
+            {"depIataCode":"LYS", "date":"2026-08-29"}
         ]
 
         with self.assertRaises(ValidationError) as ctx:
-            test_schema_fields(schema, SendFlightNumberRequest)
+            test_schema_fields(schema, SendFlightRequest)
 
         # Uncomment when you want to test for specific errs
         # errors = ctx.exception.errors()
