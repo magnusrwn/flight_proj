@@ -1,7 +1,18 @@
 import asyncio
 from typing import Any, Literal
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import duckdb as ddb
+from pathlib import Path
+import sys
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, BACKEND_ROOT)
+from src.models.base_models import FuncResponse
+
+# ======================================== CONSTS ========================================
+DUCKDB_PATH = BACKEND_ROOT/"data/duck_database.duckdb"
 
 # ======================================== MODELS ========================================
 class PresentError(BaseModel):
@@ -93,3 +104,46 @@ async def request_with_retry(
     return RequestWithRetryResponse(
         error=PresentError(description="Request ended unexpectedly.")
     )
+
+def is_in_table_(table_name:str, column:str, airprot_code:str) -> FuncResponse:
+    con = None
+    try:
+        con = ddb.connect(DUCKDB_PATH)
+        r = con.execute(f"""
+            SELECT EXISTS(
+            SELECT 1
+            from {table_name}
+            WHERE {column} = ?
+            )
+        """,
+        [airprot_code]
+        ).fetchone()
+
+        return FuncResponse(
+            ok=True,
+            data={"exist":r[0]}
+        )
+
+    except ddb.ConnectionException as e:
+        # NOTE: Log
+            return FuncResponse(
+                ok=False,
+                error={
+                    "message":"Duckdb path configured incorrect, and/or could not connect to duckdb. Find 'path' to view.",
+                    "error":str(e),
+                    "path":DUCKDB_PATH
+                }
+            )
+    except (ddb.CatalogException, ddb.BinderException) as e:
+            # NOTE: Log
+            return FuncResponse(
+                ok=False,
+                error={
+                    "message":"Incorrect duckdb SQL fields passed. Table or Col does not exist",
+                    "error":str(e)
+                }
+            )    
+    finally:
+        if con != None:
+            con.close()
+
