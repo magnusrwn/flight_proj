@@ -1,10 +1,11 @@
 import asyncio
 from typing import Any, Literal
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 import duckdb as ddb
 from pathlib import Path
 import sys
+import logging
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if BACKEND_ROOT not in sys.path:
@@ -13,6 +14,7 @@ from src.models.base_models import FuncResponse
 
 # ======================================== CONSTS ========================================
 DUCKDB_PATH = BACKEND_ROOT/"data/duck_database.duckdb"
+logger = logging.getLogger(__name__)
 
 # ======================================== MODELS ========================================
 class PresentError(BaseModel):
@@ -53,6 +55,7 @@ async def request_with_retry(
     if request_id:
         headers.setdefault("X-Request-ID", request_id)
 
+    logger.info("%(asctime)s -- REQUESTING: %s\n%s\n%s", url, body, headers)
     async with httpx.AsyncClient(
         timeout=timeout,
         follow_redirects=redirect,
@@ -69,6 +72,7 @@ async def request_with_retry(
                 )
             except httpx.HTTPError as exc:
                 if attempt == max_attempts - 1:
+                    logger.info("%(asctime)s  REQUEST FAILED -- MAX ATTAMPTS HIT: %s\n%s\n%s", url, body, headers)
                     return RequestWithRetryResponse(
                         error=PresentError(
                             description="Request failed after retry attempts.",
@@ -78,11 +82,14 @@ async def request_with_retry(
 
                 # Backoff prevents a burst of retries from worsening a rate limit.
                 await asyncio.sleep(retry_delay_seconds * (2**attempt))
+                logger.info("%(asctime)s -- RETRY-COUNT %s RETRYING REQUEST: %s\n%s\n%s", attempt, url, body, headers)
                 continue
 
             if response.is_success:
+                logger.info("%(asctime)s -- RESPONSE SUCCESS: %s\n%s\n%s", url, body, headers)
                 try:
                     payload = response.json()
+                    logger.info("%(asctime)s -- EXTRACTED RESPONSE: %s\n%s\n%s", url, body, headers)
                 except ValueError:
                     payload = {"content": response.text}
 
@@ -91,6 +98,7 @@ async def request_with_retry(
                 return RequestWithRetryResponse(success={"data": payload})
 
             if response.status_code not in retryable_statuses or attempt == max_attempts - 1:
+                logger.info("%(asctime)s -- REQUEST FAILED WITH STATUS CODE %s OR HIT MAX RETRYS: %s\n%s\n%s", str(response.status_code), url, body, headers)
                 return RequestWithRetryResponse(
                     error=PresentError(
                         description=f"Request returned HTTP {response.status_code}.",
@@ -101,6 +109,7 @@ async def request_with_retry(
             await asyncio.sleep(retry_delay_seconds * (2**attempt))
 
     # The loop always returns; this keeps the type contract explicit for linters.
+    logger.info("%(asctime)s -- REQUEST WITH RETRY ENDED UNEXPECTEDLY: %s\n%s\n%s", url, body, headers)
     return RequestWithRetryResponse(
         error=PresentError(description="Request ended unexpectedly.")
     )
@@ -109,6 +118,8 @@ def is_in_table_(table_name:str, column:str, airprot_code:str) -> FuncResponse:
     con = None
     try:
         con = ddb.connect(DUCKDB_PATH)
+        logger.info("%(asctime)s -- CONNECTED TO DUCK-DB")
+
         r = con.execute(f"""
             SELECT EXISTS(
             SELECT 1
@@ -118,32 +129,33 @@ def is_in_table_(table_name:str, column:str, airprot_code:str) -> FuncResponse:
         """,
         [airprot_code]
         ).fetchone()
-
+        logger.info("%(asctime)s -- READ DUCK-DB TABLE:%s, COLUMN:%s, FOR: %s", table_name, column, airprot_code)
         return FuncResponse(
             ok=True,
             data={"exist":r[0]}
         )
 
     except ddb.ConnectionException as e:
-        # NOTE: Log
-            return FuncResponse(
-                ok=False,
-                error={
-                    "message":"Duckdb path configured incorrect, and/or could not connect to duckdb. Find 'path' to view.",
-                    "error":str(e),
-                    "path":DUCKDB_PATH
-                }
-            )
+        logger.info("%(asctime)s -- HIT DUCK-DB EXCEPTION -- INFO: %s", str(e))
+        return FuncResponse(
+            ok=False,
+            error={
+                "message":"Duckdb path configured incorrect, and/or could not connect to duckdb. Find 'path' to view.",
+                "error":str(e),
+                "path":DUCKDB_PATH
+            }
+        )
     except (ddb.CatalogException, ddb.BinderException) as e:
-            # NOTE: Log
-            return FuncResponse(
-                ok=False,
-                error={
-                    "message":"Incorrect duckdb SQL fields passed. Table or Col does not exist",
-                    "error":str(e)
-                }
-            )    
+        logger.info("%(asctime)s -- HIT DUCK-DB EXCEPTION -- INFO: %s", str(e))
+        return FuncResponse(
+            ok=False,
+            error={
+                "message":"Incorrect duckdb SQL fields passed. Table or Col does not exist",
+                "error":str(e)
+            }
+        )    
     finally:
         if con != None:
             con.close()
+            logger.info("%(asctime)s -- CLOSED DUCK-DB")
 
