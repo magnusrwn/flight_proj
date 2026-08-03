@@ -1,7 +1,7 @@
 # 🚧 Under construction 🚧
 
 # Note that ⚠️
-All code in this repo is reviewed line by line to ensure I understand it. This is mainly a refresh task however, also for learning, of course. So, code will take time, and is likely hand written, or prompted and then significantly chopped down. This may also lead to code-comments of explanations of different things.
+All code in this repo is reviewed line by line to ensure I understand it, and the vast majority is written by hand. This is mainly a refresh/ improve task however, also for learning (with thing such as ML, testing, pyplot), of course. So, code will take time, and is likely hand written, or prompted and then significantly chopped down. This may also lead to code-comments of explanations of different things.
 
 ## API's used
 - Open-meteo historical weather api: https://open-meteo.com/
