@@ -2,6 +2,14 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Any
 
+class PresentError(BaseModel):
+    code: int
+    description: str
+    error: str | None = None
+
+class RequestWithRetryResponse(BaseModel):
+    success: dict[str, Any] | None = None
+    error: PresentError | None = None
 
 class CleanedFlightDuckDBTableCols(BaseModel):
     date: date
@@ -41,20 +49,12 @@ class SendFlightRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     depIataCode: str = Field(max_length=3, min_length=3)
-    date: datetime
-
-class AviationApiResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    ok: bool
-
-    error_message: str | None = None
-    error_code: int | None = None
-    data: dict | None
+    date: date
 
 class FuncResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ok: bool
-    error: Any | None = None
+    code: int | None = None
+    message: str | None = None
     data: Any | None = None
