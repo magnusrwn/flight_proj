@@ -12,7 +12,8 @@ def health_check():
     return {"status":"ok"}
 
 @app.post("/send-flight")
-def send_flight_number(body:SendFlightRequest):
+async def send_flight_number(body:SendFlightRequest):
+    # TODO list for the service func...
     # [X] Add logger at comments thoguhout all funcs here at end
 
     # [X] compare it to the apirports dataset: 'weather_req_table.codes'
@@ -29,5 +30,7 @@ def send_flight_number(body:SendFlightRequest):
     # [] Then begin prediction service
         # [] predict with model
     
-    response = predict_flight__service(body)
+    response = await predict_flight__service(body)
+    if not response.ok:
+        return response.model_dump()
     return response.data
