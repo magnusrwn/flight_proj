@@ -3,12 +3,12 @@ import unittest
 from pathlib import Path
 
 
-BACKEND_SRC = Path(__file__).resolve().parents[1] / "src"
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
-from ml.csv_data_pipeline_funcs import TableSchemaMismatchError, _validate_table_schema
-from models.base_models import CleanedFlightDuckDBTableCols
+from src.ml.csv_data_pipeline_funcs import TableSchemaMismatchError, _validate_table_schema
+from src.models.base_models import CleanedFlightDuckDBTableCols
 
 
 class SchemaValidationTests(unittest.TestCase):
