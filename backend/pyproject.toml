@@ -9,6 +9,7 @@ dependencies = [
     "duckdb>=1.5.5",
     "fastapi>=0.139.0",
     "httpx>=0.28.1",
+    "joblib>=1.5.3",
     "jupyter>=1.1.1",
     "matplotlib>=3.11.1",
     "memory-profiler>=0.61.0",

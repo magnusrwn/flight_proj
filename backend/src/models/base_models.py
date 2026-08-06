@@ -74,7 +74,7 @@ class MatchedAviationAPIDataResponse(BaseModel):
     dest_lat:float
     dest_long:float
 
-    date:date
+    flight_date:date
     day_of_month:int
     day_of_week:int
     pred_dep_time:int
@@ -87,3 +87,22 @@ class SendWeatherAPIRequest(BaseModel):
     date: date
     lat: float
     long: float
+
+
+
+# NOTE: Make model req model from this:
+# id                                 bigint     flight_date                        date       year                               integer
+# month                              integer    day_of_month                       integer    day_of_week                        integer
+# flight_num                         double     origin                             varchar    origin_city_name                   varchar
+# dest                               varchar    dest_city_name                     varchar    pred_dep_time                      bigint 
+# pred_arr_time                      bigint     pred_elapsed_time                  double     fl_distance                        double 
+# delay                              double     origin_weather_code                double     origin_temperature_2m_max          double 
+# origin_temperature_2m_min          double     origin_apparent_temperature_max    double     origin_apparent_temperature_min    double 
+# origin_precipitation_sum           double     origin_rain_sum                    double     origin_showers_sum                 double 
+# origin_snowfall_sum                double     origin_cloud_cover_mean            double     origin_wind_speed_10m_max          double 
+# origin_wind_gusts_10m_max          double     origin_wind_direction_10m_dominant double     origin_pressure_msl_mean           double 
+# dest_weather_code                  double     dest_temperature_2m_max            double     dest_temperature_2m_min            double 
+# dest_apparent_temperature_max      double     dest_apparent_temperature_min      double     dest_precipitation_sum             double 
+# dest_rain_sum                      double     dest_showers_sum                   double     dest_snowfall_sum                  double 
+# dest_cloud_cover_mean              double     dest_wind_speed_10m_max            double     dest_wind_gusts_10m_max            double 
+# dest_wind_direction_10m_dominant   double     dest_pressure_msl_mean             double                          
