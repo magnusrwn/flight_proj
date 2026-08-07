@@ -15,6 +15,9 @@ wheels/
 # duckdb local
 .duckdb
 
+# model
+.joblib
+
 # Data folder:
 backend/data
 backend/logs
