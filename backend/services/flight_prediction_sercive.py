@@ -645,7 +645,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
     # === Model prediction ===
     logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:predict_delay_from_model")
-    prediction_resp = predict_delay_from_model(model_input_resp.data)
+    prediction_resp:FuncResponse = predict_delay_from_model(model_input_resp.data)
     if not prediction_resp.ok:
         logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:predict_delay_from_model -- DETAIL: %s", prediction_resp.message)
         code = prediction_resp.code or 500
