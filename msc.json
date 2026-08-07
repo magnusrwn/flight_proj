@@ -1,0 +1,281 @@
+[
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "07:00"
+    },
+    "arrival": {
+      "iataCode": "lgw",
+      "icaoCode": "egkk",
+      "terminal": "n",
+      "gate": "",
+      "scheduledTime": "07:40"
+    },
+    "aircraft": {
+      "modelCode": "a320",
+      "modelText": "airbus a320-214"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "8430",
+      "iataNumber": "u28430",
+      "icaoNumber": "ezy8430"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "06:05"
+    },
+    "arrival": {
+      "iataCode": "rak",
+      "icaoCode": "gmmx",
+      "terminal": "",
+      "gate": "",
+      "scheduledTime": "08:10"
+    },
+    "aircraft": {
+      "modelCode": "a319",
+      "modelText": "airbus a319-111"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "4477",
+      "iataNumber": "u24477",
+      "icaoNumber": "ezy4477"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "21:55"
+    },
+    "arrival": {
+      "iataCode": "agp",
+      "icaoCode": "lemg",
+      "terminal": "",
+      "gate": "",
+      "scheduledTime": "00:15"
+    },
+    "aircraft": {
+      "modelCode": "a319",
+      "modelText": "airbus a319-111"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "7048",
+      "iataNumber": "u27048",
+      "icaoNumber": "ezy7048"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "06:15"
+    },
+    "arrival": {
+      "iataCode": "esu",
+      "icaoCode": "gmmi",
+      "terminal": "",
+      "gate": "",
+      "scheduledTime": "08:25"
+    },
+    "aircraft": {
+      "modelCode": "a320",
+      "modelText": "airbus a320-214"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "4343",
+      "iataNumber": "u24343",
+      "icaoNumber": "ezy4343"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "07:00"
+    },
+    "arrival": {
+      "iataCode": "dbv",
+      "icaoCode": "lddu",
+      "terminal": "",
+      "gate": "",
+      "scheduledTime": "08:50"
+    },
+    "aircraft": {
+      "modelCode": "a320",
+      "modelText": "airbus a320-214"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "4461",
+      "iataNumber": "u24461",
+      "icaoNumber": "ezy4461"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "17:40"
+    },
+    "arrival": {
+      "iataCode": "bod",
+      "icaoCode": "lfbd",
+      "terminal": "b",
+      "gate": "",
+      "scheduledTime": "18:50"
+    },
+    "aircraft": {
+      "modelCode": "a320",
+      "modelText": "airbus a320-214"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "1816",
+      "iataNumber": "u21816",
+      "icaoNumber": "ezy1816"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "13:50"
+    },
+    "arrival": {
+      "iataCode": "lis",
+      "icaoCode": "lppt",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "15:25"
+    },
+    "aircraft": {
+      "modelCode": "a320",
+      "modelText": "airbus a320-214"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "4425",
+      "iataNumber": "u24425",
+      "icaoNumber": "ezy4425"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "10:55"
+    },
+    "arrival": {
+      "iataCode": "fao",
+      "icaoCode": "lpfr",
+      "terminal": "",
+      "gate": "",
+      "scheduledTime": "12:25"
+    },
+    "aircraft": {
+      "modelCode": "a319",
+      "modelText": "airbus a319-111"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "7516",
+      "iataNumber": "u27516",
+      "icaoNumber": "ezy7516"
+    }
+  },
+  {
+    "weekday": "6",
+    "departure": {
+      "iataCode": "lys",
+      "icaoCode": "lfll",
+      "terminal": "1",
+      "gate": "",
+      "scheduledTime": "22:00"
+    },
+    "arrival": {
+      "iataCode": "opo",
+      "icaoCode": "lppr",
+      "terminal": "",
+      "gate": "",
+      "scheduledTime": "23:15"
+    },
+    "aircraft": {
+      "modelCode": "a20n",
+      "modelText": "airbus a320-251n"
+    },
+    "airline": {
+      "name": "easyjet",
+      "iataCode": "u2",
+      "icaoCode": "ezy"
+    },
+    "flight": {
+      "number": "6814",
+      "iataNumber": "u26814",
+      "icaoNumber": "ezy6814"
+    }
+  }
+]
