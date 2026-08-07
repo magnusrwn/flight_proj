@@ -16,7 +16,7 @@ wheels/
 .duckdb
 
 # model
-.joblib
+*.joblib
 
 # Data folder:
 backend/data
