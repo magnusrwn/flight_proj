@@ -12,6 +12,23 @@ from src.utils import request_with_retry
 
 load_dotenv()
 
+WEATHER_DAILY_FIELDS = [
+    "weather_code",
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "apparent_temperature_max",
+    "apparent_temperature_min",
+    "precipitation_sum",
+    "rain_sum",
+    "showers_sum",
+    "snowfall_sum",
+    "cloud_cover_mean",
+    "wind_speed_10m_max",
+    "wind_gusts_10m_max",
+    "wind_direction_10m_dominant",
+    "pressure_msl_mean",
+]
+
 async def fetch_weather_info(lat:float, lon:float, date:date) -> RequestWithRetryResponse:
     method = "GET"
     url = "https://customer-api.open-meteo.com/v1/forecast"
@@ -31,24 +48,7 @@ async def fetch_weather_info(lat:float, lon:float, date:date) -> RequestWithRetr
         "longitude": lon,
         "start_date": date.isoformat(),
         "end_date": date.isoformat(),
-        "daily": ",".join(
-            [
-                "weather_code",
-                "temperature_2m_max",
-                "temperature_2m_min",
-                "apparent_temperature_max",
-                "apparent_temperature_min",
-                "precipitation_sum",
-                "rain_sum",
-                "showers_sum",
-                "snowfall_sum",
-                "cloud_cover_mean",
-                "wind_speed_10m_max",
-                "wind_gusts_10m_max",
-                "wind_direction_10m_dominant",
-                "pressure_msl_mean",
-            ]
-        ),
+        "daily": ",".join(WEATHER_DAILY_FIELDS),
         "timezone": "auto",
     }
 

@@ -1,4 +1,5 @@
 import asyncio
+import math
 from typing import Any, Literal
 import httpx
 from pydantic import BaseModel
@@ -22,6 +23,32 @@ DUCKDB_PATH = BACKEND_ROOT/"data/duck_database.duckdb"
 logger = logging.getLogger(__name__)
 
 # ======================================== FUNCTIONS ========================================
+def calculate_distance_miles(
+    origin_lat: float,
+    origin_long: float,
+    dest_lat: float,
+    dest_long: float,
+) -> int:
+    """Calculate great-circle airport distance in whole miles."""
+    coords = (origin_lat, origin_long, dest_lat, dest_long)
+    if not all(math.isfinite(coord) for coord in coords):
+        raise ValueError("Coordinates must be finite numbers.")
+
+    earth_radius_miles = 3958.7613
+    origin_lat_rad = math.radians(origin_lat)
+    dest_lat_rad = math.radians(dest_lat)
+    lat_delta = math.radians(dest_lat - origin_lat)
+    long_delta = math.radians(dest_long - origin_long)
+
+    a = (
+        math.sin(lat_delta / 2) ** 2
+        + math.cos(origin_lat_rad)
+        * math.cos(dest_lat_rad)
+        * math.sin(long_delta / 2) ** 2
+    )
+    central_angle = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return int(round(earth_radius_miles * central_angle))
+
 async def request_with_retry(
     url: str,
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -147,4 +174,15 @@ def is_in_table(table_name:str, column:str, airprot_code:str) -> FuncResponse:
         if con != None:
             con.close()
             logger.info("%(asctime)s -- CLOSED DUCK-DB")
+
+def get_nested_str(data: dict[str, Any], parent_key: str, child_key: str) -> str:
+    parent = data.get(parent_key)
+    if not isinstance(parent, dict):
+        return ""
+
+    value = parent.get(child_key)
+    if not isinstance(value, str):
+        return ""
+
+    return value
 

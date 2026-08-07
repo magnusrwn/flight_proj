@@ -8,7 +8,13 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if BACKEND_ROOT not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from src.models.base_models import SendFlightRequest
+from src.models.base_models import (
+    FlightDistanceRequest,
+    FlightDistanceResponse,
+    FlightPredictionResponse,
+    MLModelNumericInput,
+    SendFlightRequest,
+)
 
 
 class BaseModelError(Exception):
@@ -84,6 +90,100 @@ class BaseModelTests(unittest.TestCase):
         # Uncomment when you want to test for specific errs
         # errors = ctx.exception.errors()
         # self.assertEqual(errors[0]["loc"], ("car",))
+
+    def test_flight_distance_request__clean_input(self) -> None:
+        model = FlightDistanceRequest(
+            origin_lat=40.6413,
+            origin_long=-73.7781,
+            dest_lat=33.9416,
+            dest_long=-118.4085,
+        )
+
+        self.assertEqual(model.origin_lat, 40.6413)
+
+    def test_flight_distance_request__invalid_coordinate(self) -> None:
+        with self.assertRaises(ValidationError):
+            FlightDistanceRequest(
+                origin_lat=120,
+                origin_long=-73.7781,
+                dest_lat=33.9416,
+                dest_long=-118.4085,
+            )
+
+    def test_flight_distance_response__requires_int_distance(self) -> None:
+        model = FlightDistanceResponse(fl_distance=2475)
+
+        self.assertEqual(model.fl_distance, 2475)
+        self.assertIsInstance(model.fl_distance, int)
+
+    def test_flight_prediction_response__clean_input(self) -> None:
+        model = FlightPredictionResponse(
+            is_significant_delay=True,
+            significant_delay_probability=0.8,
+        )
+
+        self.assertTrue(model.is_significant_delay)
+        self.assertEqual(model.significant_delay_probability, 0.8)
+
+    def test_flight_prediction_response__rejects_invalid_contract(self) -> None:
+        with self.assertRaises(ValidationError):
+            FlightPredictionResponse(
+                is_significant_delay=False,
+                significant_delay_probability=1.2,
+            )
+
+        with self.assertRaises(ValidationError):
+            FlightPredictionResponse(
+                is_significant_delay=False,
+                significant_delay_probability=0.2,
+                extra_field="not allowed",
+            )
+
+    def test_ml_numeric_input__requires_fl_distance(self) -> None:
+        input_data = {
+            "year": 2026,
+            "month": 8,
+            "day_of_month": 7,
+            "day_of_week": 5,
+            "pred_dep_time": 900,
+            "pred_arr_time": 1130,
+            "pred_elapsed_time": 330,
+            "origin_weather_code": 1.0,
+            "origin_apparent_temperature_max": 20.0,
+            "origin_temperature_2m_max": 20.0,
+            "origin_temperature_2m_min": 10.0,
+            "origin_apparent_temperature_min": 10.0,
+            "origin_precipitation_sum": 0.0,
+            "origin_rain_sum": 0.0,
+            "origin_showers_sum": 0.0,
+            "origin_snowfall_sum": 0.0,
+            "origin_cloud_cover_mean": 50.0,
+            "origin_wind_speed_10m_max": 10.0,
+            "origin_wind_gusts_10m_max": 15.0,
+            "origin_wind_direction_10m_dominant": 180.0,
+            "origin_pressure_msl_mean": 1010.0,
+            "dest_weather_code": 1.0,
+            "dest_temperature_2m_max": 20.0,
+            "dest_temperature_2m_min": 10.0,
+            "dest_apparent_temperature_max": 20.0,
+            "dest_apparent_temperature_min": 10.0,
+            "dest_precipitation_sum": 0.0,
+            "dest_rain_sum": 0.0,
+            "dest_showers_sum": 0.0,
+            "dest_snowfall_sum": 0.0,
+            "dest_cloud_cover_mean": 50.0,
+            "dest_wind_speed_10m_max": 10.0,
+            "dest_wind_gusts_10m_max": 15.0,
+            "dest_wind_direction_10m_dominant": 180.0,
+            "dest_pressure_msl_mean": 1010.0,
+        }
+
+        with self.assertRaises(ValidationError):
+            MLModelNumericInput(**input_data)
+
+        input_data["fl_distance"] = 2475
+        model = MLModelNumericInput(**input_data)
+        self.assertEqual(model.fl_distance, 2475)
 
 
 if __name__ == '__main__':
