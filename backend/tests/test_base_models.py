@@ -11,6 +11,7 @@ if BACKEND_ROOT not in sys.path:
 from src.models.base_models import (
     FlightDistanceRequest,
     FlightDistanceResponse,
+    FlightPredictionResponse,
     MLModelNumericInput,
     SendFlightRequest,
 )
@@ -114,6 +115,29 @@ class BaseModelTests(unittest.TestCase):
 
         self.assertEqual(model.fl_distance, 2475)
         self.assertIsInstance(model.fl_distance, int)
+
+    def test_flight_prediction_response__clean_input(self) -> None:
+        model = FlightPredictionResponse(
+            is_significant_delay=True,
+            significant_delay_probability=0.8,
+        )
+
+        self.assertTrue(model.is_significant_delay)
+        self.assertEqual(model.significant_delay_probability, 0.8)
+
+    def test_flight_prediction_response__rejects_invalid_contract(self) -> None:
+        with self.assertRaises(ValidationError):
+            FlightPredictionResponse(
+                is_significant_delay=False,
+                significant_delay_probability=1.2,
+            )
+
+        with self.assertRaises(ValidationError):
+            FlightPredictionResponse(
+                is_significant_delay=False,
+                significant_delay_probability=0.2,
+                extra_field="not allowed",
+            )
 
     def test_ml_numeric_input__requires_fl_distance(self) -> None:
         input_data = {

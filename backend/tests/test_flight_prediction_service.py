@@ -9,6 +9,7 @@ if BACKEND_ROOT not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from services.flight_prediction_sercive import (
+    MODEL_FEATURES,
     WEATHER_DAILY_FIELDS,
     build_flight_data,
     build_flight_distance,
@@ -230,7 +231,10 @@ class FlightPredictionServiceTests(unittest.TestCase):
 
     def test_predict_delay_from_model__clean_input(self):
         class FakeModel:
+            model_df = None
+
             def predict(self, _model_df):
+                self.__class__.model_df = _model_df
                 return [1]
 
             def predict_proba(self, _model_df):
@@ -247,6 +251,11 @@ class FlightPredictionServiceTests(unittest.TestCase):
 
         self.assertTrue(response.ok)
         FlightPredictionResponse(**response.data)
+        self.assertEqual(list(FakeModel.model_df.columns), MODEL_FEATURES)
+        self.assertEqual(str(FakeModel.model_df["pred_elapsed_time"].dtype), "float64")
+        self.assertEqual(str(FakeModel.model_df["fl_distance"].dtype), "float64")
+        self.assertTrue(str(FakeModel.model_df["flight_date"].dtype).startswith("datetime64"))
+        self.assertEqual(int(FakeModel.model_df.isna().sum().sum()), 0)
         self.assertEqual(
             response.data,
             {
