@@ -9,7 +9,7 @@ BACKEND_SRC = Path(__file__).resolve().parents[1] / "src"
 if str(BACKEND_SRC) not in sys.path:
     sys.path.insert(0, str(BACKEND_SRC))
 
-from ml.csv_data_pipeline_funcs import (
+from src.ml.csv_data_pipeline_funcs import (
     CsvTableBuildError,
     create_and_clean_airport_table,
     create_and_clean_flights_table,
