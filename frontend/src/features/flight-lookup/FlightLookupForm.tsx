@@ -8,15 +8,20 @@ type FlightLookupFormProps = {
 };
 
 type FormErrors = {
-  flightCode?:string;
   depAirport?:string;
   arrAirport?:string;
   depDate?:string;
+  scheduledDepartureTime?:string;
 }
 
 function isDateString(date:string):boolean{
   const pattern = /^\d{4}-\d{2}-\d{2}$/; // '^' = start of string, '$' end of string, '/', '/' enclose
   return pattern.test(date);
+}
+
+function isTimeString(time:string):boolean{
+  const pattern = /^\d{2}:\d{2}$/;
+  return pattern.test(time);
 }
 
 function inputClassName(hasError:boolean):string {
@@ -34,37 +39,39 @@ export function FlightLookupForm({
   isLoading,
   onSubmit,
 }: FlightLookupFormProps) {
-  const [flightCode, setFlightCode] = useState("");
   const [depAirport, setDepAirport] = useState("");
-  const [arrAirport, setArrAirprot] = useState("");
+  const [arrAirport, setArrAirport] = useState("");
   const [depDate, setDepDate] = useState("");
+  const [scheduledDepartureTime, setScheduledDepartureTime] = useState("");
   const [errors, setErrors] = useState<FormErrors>({})
   
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     
     const nextErrors: FormErrors = {};
-    const trimmedFlightCode = flightCode.trim().toUpperCase();
     const trimmedDepAiport = depAirport.trim().toUpperCase();
     const trimmedArrAirport = arrAirport.trim().toUpperCase()
-    const trimmedDepDate = depDate.trim().toUpperCase()
+    const trimmedDepDate = depDate.trim()
+    const trimmedScheduledDepartureTime = scheduledDepartureTime.trim()
 
-    if (!trimmedFlightCode){
-      nextErrors.flightCode = "Flight code is required"
-    };
-
-    if (!trimmedDepAiport || trimmedArrAirport.length !== 3){
-      nextErrors.depAirport = "Daperture airport is required"
+    if (!trimmedDepAiport || trimmedDepAiport.length !== 3){
+      nextErrors.depAirport = "Departure airport is required"
     };
 
     if (!trimmedArrAirport || trimmedArrAirport.length !== 3){
-      nextErrors.arrAirport = "Daperture airport is required"
+      nextErrors.arrAirport = "Arrival airport is required"
     };
 
     if (!trimmedDepDate){
       nextErrors.depDate = "Departure date is required"
     } else if (!isDateString(trimmedDepDate)){
       nextErrors.depDate = "Use format YYYY-MM-DD"
+    };
+
+    if (!trimmedScheduledDepartureTime){
+      nextErrors.scheduledDepartureTime = "Scheduled departure time is required"
+    } else if (!isTimeString(trimmedScheduledDepartureTime)){
+      nextErrors.scheduledDepartureTime = "Use format HH:MM"
     };
     
     setErrors(nextErrors);
@@ -73,8 +80,8 @@ export function FlightLookupForm({
     }
 
     await onSubmit({
-      flightNumber: trimmedFlightCode,
       date: trimmedDepDate,
+      scheduledDepartureTime: trimmedScheduledDepartureTime,
       depIataCode: trimmedDepAiport,
       destIataCode: trimmedArrAirport,
     });
@@ -84,11 +91,6 @@ export function FlightLookupForm({
     // get a transition
     <Panel className="
      max-h-[80vh] overflow-y-auto sm:px-8 lg:px-10
-
-     hover:shadow-sm
-   hover:shadow-amber-50
-     hover:border-2
-     transition-colors
     ">
       <div className=" gap-4">
           <h2 className="text-2xl  text-white">
@@ -97,27 +99,10 @@ export function FlightLookupForm({
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-
-        <label className="block space-y-2">
-          <span className={errorClassName(Boolean(errors.flightCode))}>
-            Flight code
-          </span>
-          <input
-            aria-invalid={Boolean(errors.flightCode)}
-            className={inputClassName(Boolean(errors.flightCode))}
-            placeholder="AA100, DL2451, UA818"
-            type="text"
-            value={flightCode}
-            onChange={(event) => setFlightCode(event.target.value)}
-          />
-          {errors.flightCode && (
-            <p className="text-sm text-red-300">{errors.flightCode}</p>
-          )}
-        </label>
         
         <label className="block space-y-2">
           <span className={errorClassName(Boolean(errors.depDate))}>
-            Departure Airport
+            Departure date
           </span>
           <input
             aria-invalid={Boolean(errors.depDate)}
@@ -131,17 +116,40 @@ export function FlightLookupForm({
             <p className="text-sm text-red-300">{errors.depDate}</p>
           )}
         </label>
-        
 
-        <label className="gap-x-5">
-          <span className={errorClassName(Boolean(errors.depAirport || errors.arrAirport))}>
-            Dates
+        <label className="block space-y-2">
+          <span className={errorClassName(Boolean(errors.scheduledDepartureTime))}>
+            Scheduled departure
           </span>
+          <input
+            aria-invalid={Boolean(errors.scheduledDepartureTime)}
+            className={inputClassName(Boolean(errors.scheduledDepartureTime))}
+            step={60}
+            type="time"
+            value={scheduledDepartureTime}
+            onChange={(event) => setScheduledDepartureTime(event.target.value)}
+          />
+          {errors.scheduledDepartureTime && (
+            <p className="text-sm text-red-300">{errors.scheduledDepartureTime}</p>
+          )}
+        </label>
+
+        <fieldset className="space-y-2">
+          <legend className={errorClassName(Boolean(errors.depAirport || errors.arrAirport))}>
+            Airports
+          </legend>
           <div className="grid grid-cols-2 gap-x-4">
             <div className="space-y-2">
+              <label
+                className={errorClassName(Boolean(errors.depAirport))}
+                htmlFor="departure-airport"
+              >
+                Departure
+              </label>
               <input
                 aria-invalid={Boolean(errors.depAirport)}
                 className={inputClassName(Boolean(errors.depAirport))}
+                id="departure-airport"
                 placeholder="PHX"
                 type="text"
                 value={depAirport}
@@ -152,20 +160,27 @@ export function FlightLookupForm({
               )}
             </div>
             <div className="space-y-2">
+              <label
+                className={errorClassName(Boolean(errors.arrAirport))}
+                htmlFor="arrival-airport"
+              >
+                Arrival
+              </label>
               <input
                 aria-invalid={Boolean(errors.arrAirport)}
                 className={inputClassName(Boolean(errors.arrAirport))}
+                id="arrival-airport"
                 placeholder="LAX"
                 type="text"
                 value={arrAirport}
-                onChange={(event) => setArrAirprot(event.target.value)}
+                onChange={(event) => setArrAirport(event.target.value)}
               />
               {errors.arrAirport && (
                 <p className="text-sm text-red-300">{errors.arrAirport}</p>
               )}
             </div>
           </div>
-        </label>
+        </fieldset>
           
         <button
           className="w-full rounded-2xl border border-white/15 bg-white/10 px-5 py-3 mt-4 text-sm font-semibold text-white hover:bg-white/15 active:bg-white/20 active:border-white/25"

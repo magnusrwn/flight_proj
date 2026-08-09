@@ -1,15 +1,27 @@
 import { Panel } from "../../components/Panel";
-import type { PredictionResponse, RequestState } from "../../types/api";
+import type { FlightPredResponse, RequestState } from "../../types/api";
 
 type MapPanelProps = {
   requestState: RequestState;
-  result: PredictionResponse | null;
+  result: FlightPredResponse | null;
 };
 
 export function MapPanel({ requestState, result }: MapPanelProps) {
-  const origin = result?.map.origin
-  const destination = result?.map.destination
-  const hasMapData = origin !== undefined && destination !== undefined
+  const origin = result
+    ? {
+        code: result.aviationApiData.origin,
+        lat: result.coordinates.origin_lat,
+        long: result.coordinates.origin_long,
+      }
+    : null;
+  const destination = result
+    ? {
+        code: result.aviationApiData.dest,
+        lat: result.coordinates.dest_lat,
+        long: result.coordinates.dest_long,
+      }
+    : null;
+  const hasMapData = requestState === "success" && origin !== null && destination !== null;
 
   return (
     <Panel className="flex h-full min-h-[26rem] flex-col">
@@ -42,6 +54,12 @@ export function MapPanel({ requestState, result }: MapPanelProps) {
               ? `${origin.code} to ${destination.code}`
               : "Origin and destination markers will render here"}
           </h3>
+          {hasMapData ? (
+            <p className="mt-3 text-sm leading-6 text-[var(--color-mist)]">
+              {origin.lat.toFixed(3)}, {origin.long.toFixed(3)} to{" "}
+              {destination.lat.toFixed(3)}, {destination.long.toFixed(3)}
+            </p>
+          ) : null}
           <p className="mt-3 text-sm leading-6 text-[var(--color-mist)]">
             Plan to replace this panel with <code>react-leaflet</code> and
             OpenStreetMap tiles once the backend returns stable route metadata.

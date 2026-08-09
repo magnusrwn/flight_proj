@@ -1,8 +1,8 @@
 export type RequestState = "idle" | "loading" | "success" | "error";
 
 export type FlightPredRequest = {
-  flightNumber:string;
   date: string;
+  scheduledDepartureTime: string;
   depIataCode: string;
   destIataCode: string;
 };

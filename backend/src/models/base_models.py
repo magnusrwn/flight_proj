@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Any
 
@@ -48,8 +48,8 @@ class WeatherRequestDuckDBTableCols(BaseModel):
 class FlightPredRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    flightNumber: str
     date: date
+    scheduledDepartureTime: time
     depIataCode: str = Field(max_length=3, min_length=3)
     destIataCode: str = Field(max_length=3, min_length=3)
 

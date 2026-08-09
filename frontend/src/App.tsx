@@ -58,7 +58,7 @@ export default function App() {
             bg-[#0a1b317b]
             shadow-sm
             shadow-amber-50
-            border-2
+            border-3
           ">
             <div className="gap-8 lg:grid-cols-[1.5fr_0.9fr]">
               <div className="w-auto">

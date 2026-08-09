@@ -57,14 +57,14 @@ def collect_model_path(model: type[BaseModel], paths=None, path="") -> set[str]:
             collect_model_path(model=f_info, paths=paths, path=model_path)
     return paths
 
-def test_field_numbers(schema:list[dict[str, Any]], base_model:type[BaseModel]) -> None:
+def assert_field_numbers(schema:list[dict[str, Any]], base_model:type[BaseModel]) -> None:
     schema_explored_set = collect_schema_path(item=schema)
     model_explored_set = collect_model_path(model=base_model)
 
     if len(schema_explored_set) != len(model_explored_set):
         raise BaseModelFieldCountError
 
-def test_schema_fields(schema:list[dict[str, Any]], base_model:type[BaseModel]):
+def assert_schema_fields(schema:list[dict[str, Any]], base_model:type[BaseModel]):
     for i in schema:
         base_model(**i)
 
@@ -76,7 +76,7 @@ class BaseModelTests(unittest.TestCase):
         ]
 
         with self.assertRaises(BaseModelFieldCountError):
-            test_field_numbers(schema, FlightPredRequest)
+            assert_field_numbers(schema, FlightPredRequest)
 
     def test_fields(self) -> None:
         schema = [
@@ -85,11 +85,21 @@ class BaseModelTests(unittest.TestCase):
         ]
 
         with self.assertRaises(ValidationError) as ctx:
-            test_schema_fields(schema, FlightPredRequest)
+            assert_schema_fields(schema, FlightPredRequest)
 
         # Uncomment when you want to test for specific errs
         # errors = ctx.exception.errors()
         # self.assertEqual(errors[0]["loc"], ("car",))
+
+    def test_flight_pred_request__uses_route_and_scheduled_departure(self) -> None:
+        model = FlightPredRequest(
+            depIataCode="JFK",
+            destIataCode="LAX",
+            date="2026-08-29",
+            scheduledDepartureTime="09:00",
+        )
+
+        self.assertEqual(model.scheduledDepartureTime.strftime("%H:%M"), "09:00")
 
     def test_flight_distance_request__clean_input(self) -> None:
         model = FlightDistanceRequest(
@@ -116,28 +126,53 @@ class BaseModelTests(unittest.TestCase):
         self.assertEqual(model.fl_distance, 2475)
         self.assertIsInstance(model.fl_distance, int)
 
+    def make_prediction_response_payload(self) -> dict[str, Any]:
+        return {
+            "is_significant_delay": True,
+            "significant_delay_probability": 0.8,
+            "coordinates": {
+                "origin_lat": 40.6413,
+                "origin_long": -73.7781,
+                "dest_lat": 33.9416,
+                "dest_long": -118.4085,
+            },
+            "distance": {"fl_distance": 2475},
+            "aviationApiData": {
+                "origin": "JFK",
+                "origin_city_name": "New York",
+                "origin_lat": 40.6413,
+                "origin_long": -73.7781,
+                "dest": "LAX",
+                "dest_city_name": "Los Angeles",
+                "dest_lat": 33.9416,
+                "dest_long": -118.4085,
+                "flight_date": "2026-08-07",
+                "day_of_month": 7,
+                "day_of_week": 5,
+                "pred_dep_time": 900,
+                "pred_arr_time": 1230,
+                "pred_elapsed_time": 330,
+                "year": 2026,
+                "month": 8,
+            },
+        }
+
     def test_flight_prediction_response__clean_input(self) -> None:
-        model = FlightPredictionResponse(
-            is_significant_delay=True,
-            significant_delay_probability=0.8,
-        )
+        model = FlightPredictionResponse(**self.make_prediction_response_payload())
 
         self.assertTrue(model.is_significant_delay)
         self.assertEqual(model.significant_delay_probability, 0.8)
 
     def test_flight_prediction_response__rejects_invalid_contract(self) -> None:
+        payload = self.make_prediction_response_payload()
+        payload["significant_delay_probability"] = 1.2
         with self.assertRaises(ValidationError):
-            FlightPredictionResponse(
-                is_significant_delay=False,
-                significant_delay_probability=1.2,
-            )
+            FlightPredictionResponse(**payload)
 
+        payload = self.make_prediction_response_payload()
+        payload["extra_field"] = "not allowed"
         with self.assertRaises(ValidationError):
-            FlightPredictionResponse(
-                is_significant_delay=False,
-                significant_delay_probability=0.2,
-                extra_field="not allowed",
-            )
+            FlightPredictionResponse(**payload)
 
     def test_ml_numeric_input__requires_fl_distance(self) -> None:
         input_data = {

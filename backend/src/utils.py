@@ -78,7 +78,7 @@ async def request_with_retry(
     if request_id:
         headers.setdefault("X-Request-ID", request_id)
 
-    logger.info("%(asctime)s -- REQUESTING: %s\n%s\n%s", url, body, headers)
+    logger.info("REQUESTING: %s\n%s\n%s", url, body, headers)
     async with httpx.AsyncClient(
         timeout=timeout,
         follow_redirects=redirect,
@@ -95,7 +95,7 @@ async def request_with_retry(
                 )
             except httpx.HTTPError as exc:
                 if attempt == max_attempts - 1:
-                    logger.info("%(asctime)s  REQUEST FAILED -- MAX ATTAMPTS HIT: %s\n%s\n%s", url, body, headers)
+                    logger.info("REQUEST FAILED -- MAX ATTAMPTS HIT:: url:%s\n headers:%s body:%s\nparams:%s", url, headers, body, params)
                     return RequestWithRetryResponse(
                         error=PresentError(
                             code=408,
@@ -106,14 +106,14 @@ async def request_with_retry(
 
                 # Backoff prevents a burst of retries from worsening a rate limit.
                 await asyncio.sleep(retry_delay_seconds * (2**attempt))
-                logger.info("%(asctime)s -- RETRY-COUNT %s RETRYING REQUEST: %s\n%s\n%s", attempt, url, body, headers)
+                logger.info("RETRY-COUNT %s RETRYING REQUEST:: url:%s\n headers:%s body:%s\nparams:%s", attempt, url, headers, body, params)
                 continue
 
             if response.is_success:
-                logger.info("%(asctime)s -- RESPONSE SUCCESS: %s\n%s\n%s", url, body, headers)
+                logger.info("RESPONSE SUCCESS:: url:%s\n headers:%s body:%s\nparams:%s", url, headers, body, params)
                 try:
                     payload = response.json()
-                    logger.info("%(asctime)s -- EXTRACTED RESPONSE: %s\n%s\n%s", url, body, headers)
+                    logger.info("EXTRACTED RESPONSE:: url:%s\n headers:%s body:%s\nparams:%s", url, headers, body, params)
                 except ValueError:
                     payload = {"content": response.text}
 
@@ -122,7 +122,7 @@ async def request_with_retry(
                 return RequestWithRetryResponse(success={"data": payload})
 
             if response.status_code not in retryable_statuses or attempt == max_attempts - 1:
-                logger.info("%(asctime)s -- REQUEST FAILED WITH STATUS CODE %s OR HIT MAX RETRYS: %s\n%s\n%s", str(response.status_code), url, body, headers)
+                logger.info("REQUEST FAILED WITH STATUS CODE %s OR HIT MAX RETRYS: %s \n %s \n %s\n %s", str(response.status_code), url, body, headers, params)
                 return RequestWithRetryResponse(
                     error=PresentError(
                         code=int(response.status_code),
@@ -134,7 +134,7 @@ async def request_with_retry(
             await asyncio.sleep(retry_delay_seconds * (2**attempt))
 
     # The loop always returns; this keeps the type contract explicit for linters.
-    logger.info("%(asctime)s -- REQUEST WITH RETRY ENDED UNEXPECTEDLY: %s\n%s\n%s", url, body, headers)
+    logger.info("REQUEST WITH RETRY ENDED UNEXPECTEDLY: %s\n%s\n%s\n%s", url, body, headers, params)
     return RequestWithRetryResponse(
         error=PresentError(code=500, description="Uncaught error in 'request_with_retry'")
     )
@@ -143,7 +143,7 @@ def is_in_table(table_name:str, column:str, airprot_code:str) -> FuncResponse:
     con = None
     try:
         con = ddb.connect(DUCKDB_PATH)
-        logger.info("%(asctime)s -- CONNECTED TO DUCK-DB")
+        logger.info("CONNECTED TO DUCK-DB")
 
         r = con.execute(f"""
             SELECT EXISTS(
@@ -155,25 +155,25 @@ def is_in_table(table_name:str, column:str, airprot_code:str) -> FuncResponse:
         [airprot_code]
         ).fetchone()
 
-        logger.info("%(asctime)s -- READ DUCK-DB TABLE:%s, COLUMN:%s, FOR: %s", table_name, column, airprot_code)
+        logger.info("READ DUCK-DB TABLE:%s, COLUMN:%s, FOR: %s", table_name, column, airprot_code)
         return FuncResponse(
             ok=True,
             data=r[0]
         )
     except ddb.ConnectionException as e:
-        logger.info("%(asctime)s -- HIT DUCK-DB EXCEPTION -- INFO: %s", str(e))
+        logger.info("HIT DUCK-DB EXCEPTION -- INFO: %s", str(e))
         return FuncResponse(
             ok=False, code=500, message="Failed to connect to duckdb with given connection path", data=str(e)
         )
     except (ddb.CatalogException, ddb.BinderException) as e:
-        logger.info("%(asctime)s -- HIT DUCK-DB EXCEPTION -- INFO: %s", str(e))
+        logger.info("HIT DUCK-DB EXCEPTION -- INFO: %s", str(e))
         return FuncResponse(
             ok=False, code=400, message="Incorrect duckdb-SQL fields passed. Table or Col does not exist", data=str(e)
         )    
     finally:
         if con != None:
             con.close()
-            logger.info("%(asctime)s -- CLOSED DUCK-DB")
+            logger.info("CLOSED DUCK-DB")
 
 def get_nested_str(data: dict[str, Any], parent_key: str, child_key: str) -> str:
     parent = data.get(parent_key)
@@ -185,4 +185,3 @@ def get_nested_str(data: dict[str, Any], parent_key: str, child_key: str) -> str
         return ""
 
     return value
-

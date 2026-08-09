@@ -1,4 +1,4 @@
-import type { FlightLookupRequest, PredictionResponse } from "../types/api";
+import type { FlightPredRequest, FlightPredResponse } from "../types/api";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:8000";
@@ -7,8 +7,8 @@ const PREDICTION_ENDPOINT =
 
 // Just one request from the frontend for the whole app
 export async function fetchPrediction(
-  payload: FlightLookupRequest,
-): Promise<PredictionResponse> {
+  payload: FlightPredRequest,
+): Promise<FlightPredResponse> {
   const response = await fetch(`${API_BASE_URL}${PREDICTION_ENDPOINT}`, {
     method: "POST",
     headers: {
@@ -21,5 +21,5 @@ export async function fetchPrediction(
     throw new Error(`Prediction request failed with status ${response.status}.`);
   }
 
-  return (await response.json()) as PredictionResponse;
+  return (await response.json()) as FlightPredResponse;
 }
