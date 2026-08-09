@@ -21,10 +21,9 @@ from services.flight_prediction_sercive import (
     predict_flight__service,
 )
 from src.models.base_models import (
-    FlightPredictionResponse,
     FuncResponse,
     RequestWithRetryResponse,
-    SendFlightRequest,
+    FlightPredRequest,
 )
 
 
@@ -87,20 +86,23 @@ class FlightPredictionServiceTests(unittest.TestCase):
         )
 
     def test_match_flight_to_request__skips_invalid_payloads(self):
-        request = SendFlightRequest(
+        request = FlightPredRequest(
             depIataCode="JFK",
             destIataCode="LAX",
             date=date(2026, 8, 7),
-            flightNumber="AA100",
+            scheduledDepartureTime="09:00",
         )
 
         response = match_flight_to_request(
             api_data=[
                 "invalid",
-                {"arrival": "LAX", "flight": {"iataNumber": "AA100"}},
                 {
+                    "departure": {"iataCode": "JFK", "scheduledTime": "09:30"},
                     "arrival": {"iataCode": "LAX"},
-                    "flight": {"iataNumber": "AA100", "icaoNumber": "AAL100"},
+                },
+                {
+                    "departure": {"iataCode": "JFK", "scheduledTime": "09:00"},
+                    "arrival": {"iataCode": "LAX"},
                 },
             ],
             req_flight=request,
@@ -108,6 +110,52 @@ class FlightPredictionServiceTests(unittest.TestCase):
 
         self.assertTrue(response.ok)
         self.assertIsInstance(response.data, dict)
+        self.assertEqual(response.data["departure"]["scheduledTime"], "09:30")
+
+    def test_match_flight_to_request__matches_departure_time_within_30_minutes(self):
+        request = FlightPredRequest(
+            depIataCode="JFK",
+            destIataCode="LAX",
+            date=date(2026, 8, 7),
+            scheduledDepartureTime="09:00",
+        )
+
+        response = match_flight_to_request(
+            api_data=[
+                {
+                    "departure": {"iataCode": "JFK", "scheduledTime": "08:31"},
+                    "arrival": {"iataCode": "LAX"},
+                },
+            ],
+            req_flight=request,
+        )
+
+        self.assertTrue(response.ok)
+
+    def test_match_flight_to_request__requires_route_and_departure_time(self):
+        request = FlightPredRequest(
+            depIataCode="JFK",
+            destIataCode="LAX",
+            date=date(2026, 8, 7),
+            scheduledDepartureTime="09:00",
+        )
+
+        response = match_flight_to_request(
+            api_data=[
+                {
+                    "departure": {"iataCode": "JFK", "scheduledTime": "09:31"},
+                    "arrival": {"iataCode": "LAX"},
+                },
+                {
+                    "departure": {"iataCode": "JFK", "scheduledTime": "09:00"},
+                    "arrival": {"iataCode": "SFO"},
+                },
+            ],
+            req_flight=request,
+        )
+
+        self.assertFalse(response.ok)
+        self.assertEqual(response.code, 404)
 
     def test_build_flight_distance__clean_input(self):
         with patch(
@@ -165,11 +213,11 @@ class FlightPredictionServiceTests(unittest.TestCase):
                 -118.4085,
             )
         )
-        request = SendFlightRequest(
+        request = FlightPredRequest(
             depIataCode="JFK",
             destIataCode="LAX",
             date=date(2026, 8, 7),
-            flightNumber="AA100",
+            scheduledDepartureTime="09:00",
         )
 
         with patch("services.flight_prediction_sercive.ddb.connect", return_value=fake_connection):
@@ -250,7 +298,6 @@ class FlightPredictionServiceTests(unittest.TestCase):
             response = predict_delay_from_model(model_input.data)
 
         self.assertTrue(response.ok)
-        FlightPredictionResponse(**response.data)
         self.assertEqual(list(FakeModel.model_df.columns), MODEL_FEATURES)
         self.assertEqual(str(FakeModel.model_df["pred_elapsed_time"].dtype), "float64")
         self.assertEqual(str(FakeModel.model_df["fl_distance"].dtype), "float64")
@@ -267,11 +314,11 @@ class FlightPredictionServiceTests(unittest.TestCase):
 
 class FlightPredictionServiceAsyncTests(unittest.IsolatedAsyncioTestCase):
     async def test_predict_flight_service__invalid_aviation_data_payload(self):
-        request = SendFlightRequest(
+        request = FlightPredRequest(
             depIataCode="JFK",
             destIataCode="LAX",
             date=date(2026, 8, 7),
-            flightNumber="AA100",
+            scheduledDepartureTime="09:00",
         )
 
         with (

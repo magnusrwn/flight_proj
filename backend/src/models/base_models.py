@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Any
 
@@ -45,13 +45,13 @@ class WeatherRequestDuckDBTableCols(BaseModel):
     last_error: str | None
     updated_at: datetime
 
-class SendFlightRequest(BaseModel):
+class FlightPredRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    date: date
+    scheduledDepartureTime: time
     depIataCode: str = Field(max_length=3, min_length=3)
     destIataCode: str = Field(max_length=3, min_length=3)
-    date: date
-    flightNumber: str
 
 class FuncResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -107,6 +107,9 @@ class FlightPredictionResponse(BaseModel):
     is_significant_delay: bool
     significant_delay_probability: float | None = Field(default=None, ge=0, le=1)
 
+    coordinates: FlightDistanceRequest
+    distance: FlightDistanceResponse
+    aviationApiData: MatchedAviationAPIDataResponse
 
 class MLModelCatagoricalInput(BaseModel):
     flight_date: date

@@ -24,7 +24,7 @@ from src.models.base_models import (
     MLModelInput,
     MLModelNumericInput,
     PresentError,
-    SendFlightRequest,
+    FlightPredRequest,
     RequestWithRetryResponse,
     MatchedAviationAPIDataResponse
 )
@@ -76,33 +76,87 @@ MODEL_FEATURES = [
 ]
 
 # ==================== Helpers ====================
-def match_flight_to_request(api_data:list[dict[str, Any]], req_flight:SendFlightRequest) -> FuncResponse:
+SCHEDULED_DEPARTURE_MATCH_TOLERANCE_MINUTES = 30
+
+
+def normalize_scheduled_time(value: str) -> str:
+    value = value.strip()
+    if not value:
+        return ""
+
+    for time_format in ("%H:%M", "%H:%M:%S", "%H%M"):
+        try:
+            return datetime.strptime(value, time_format).strftime("%H:%M")
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).strftime("%H:%M")
+    except ValueError:
+        return value
+
+
+def scheduled_time_to_minutes(value: str) -> int | None:
+    normalized_time = normalize_scheduled_time(value)
+    try:
+        time_obj = datetime.strptime(normalized_time, "%H:%M")
+    except ValueError:
+        return None
+
+    return (time_obj.hour * 60) + time_obj.minute
+
+
+def scheduled_times_match(
+    api_dep_time: str,
+    requested_dep_time: str,
+    *,
+    tolerance_minutes: int = SCHEDULED_DEPARTURE_MATCH_TOLERANCE_MINUTES,
+) -> bool:
+    api_minutes = scheduled_time_to_minutes(api_dep_time)
+    requested_minutes = scheduled_time_to_minutes(requested_dep_time)
+    if api_minutes is None or requested_minutes is None:
+        return False
+
+    absolute_diff = abs(api_minutes - requested_minutes)
+    clock_diff = min(absolute_diff, (24 * 60) - absolute_diff)
+    return clock_diff <= tolerance_minutes
+
+
+def match_flight_to_request(api_data:list[Any], req_flight:FlightPredRequest) -> FuncResponse:
     '''
     Itterates AviationStack API response to match the requested flight to the API response.
     '''
+    taste_data = api_data[0] if api_data else ""
+    data_length = len(api_data)
+    requested_dep_time = req_flight.scheduledDepartureTime.strftime("%H:%M")
+    logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: API response length: %s, data sample: %s ", data_length, taste_data)
     for flight in api_data:
         if not isinstance(flight, dict):
-            logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Skipping invalid flight payload")
+            logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Skipping invalid flight payload")
             continue
 
+        # TODO(API RESPONSE SHAPE): If AviationStack uses different keys for airport
+        # codes or scheduled departure time, update these nested field names.
+        api_dep_code = get_nested_str(flight, "departure", "iataCode")
         api_dest_code = get_nested_str(flight, "arrival", "iataCode")
-        api_iata_flight_code = get_nested_str(flight, "flight", "iataNumber")
-        api_icao_flight_code = get_nested_str(flight, "flight", "icaoNumber")
-
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Matching API response")
+        api_dep_time = get_nested_str(flight, "departure", "scheduledTime")
+        time_matches = scheduled_times_match(api_dep_time, requested_dep_time)
+        print(
+            f"api: {api_dep_time} req: {requested_dep_time} "
+            f"api-dep: {api_dep_code} api-dest: {api_dest_code} "
+            f"time-match: {time_matches}"
+        )
         if (
-            api_dest_code.upper() == req_flight.destIataCode.upper()
-            and req_flight.flightNumber.upper() in {
-                api_iata_flight_code.upper(),
-                api_icao_flight_code.upper(),
-            }
+            api_dep_code.upper() == req_flight.depIataCode.upper()
+            and api_dest_code.upper() == req_flight.destIataCode.upper()
+            and time_matches
         ):
             return FuncResponse(ok=True, code=200, data=flight)
 
-    logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: No match found to API response")
+    logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: No match found to API response")
     return FuncResponse(ok=False, code=404, message="Flight could not be matched to Aviation Stack response")
 
-def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:SendFlightRequest) -> FuncResponse:
+def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:FlightPredRequest) -> FuncResponse:
     '''
     Creates final flight datapoint from:
     - Duckdb (code, lat, long, name)
@@ -112,7 +166,7 @@ def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:SendFlightR
 
     con = None
     try:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Open duckdb connection")
+        logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Open duckdb connection")
         con = ddb.connect(str(BACKEND_ROOT/"data/duck_database.duckdb"))
         air_match = con.execute(f"""
             SELECT
@@ -134,7 +188,7 @@ def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:SendFlightR
         ).fetchone()
 
         if air_match is None:
-            logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: No airport matches found")
+            logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: No airport matches found")
             return FuncResponse(ok=False, code=404, message="No airport was matched to the airport_data dataset")
         (
             origin,
@@ -189,22 +243,22 @@ def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:SendFlightR
             data=data.model_dump()
         )
     except ddb.ConnectionException as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Error establishing duckdb connection -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Error establishing duckdb connection -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=500, message=str(e))
     except (ddb.CatalogException, ddb.BinderException) as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Error reading duckdb airport_data -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Error reading duckdb airport_data -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=400, message="Failed to read airport_data from duckdb", data=str(e))
     except ValueError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Error parsing scheduled times -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Error parsing scheduled times -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=400, message="Failed to parse scheduled flight times", data=str(e))
     finally:
         if con != None:
-            logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Close duckdb connection")
+            logger.info("SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: Close duckdb connection")
             con.close()
 
 def build_flight_distance(flight_data: dict[str, Any]) -> FuncResponse:
     try:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Calculating flight distance")
+        logger.info("SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Calculating flight distance")
         distance_request = FlightDistanceRequest(
             origin_lat=flight_data["origin_lat"],
             origin_long=flight_data["origin_long"],
@@ -220,13 +274,13 @@ def build_flight_distance(flight_data: dict[str, Any]) -> FuncResponse:
             data=distance_response.model_dump(),
         )
     except KeyError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Missing coordinate -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Missing coordinate -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=500, message="Built flight data is missing distance coordinates.", data=str(e))
     except ValidationError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Coordinate validation failed -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Coordinate validation failed -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=400, message="Flight distance data failed validation.", data=str(e))
     except ValueError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Distance calculation failed -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:build_flight_distance -- DETAIL: Distance calculation failed -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=400, message="Flight distance could not be calculated.", data=str(e))
 
 def extract_daily_weather_features(weather_data: dict[str, Any], prefix: str) -> FuncResponse:
@@ -249,7 +303,7 @@ def extract_daily_weather_features(weather_data: dict[str, Any], prefix: str) ->
 
         return FuncResponse(ok=True, code=200, message=f"{prefix} weather features extracted.", data=features)
     except ValueError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:extract_daily_weather_features -- DETAIL: Weather extraction failed -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:extract_daily_weather_features -- DETAIL: Weather extraction failed -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=502, message=f"{prefix} weather data could not be extracted.", data=str(e))
 
 def build_ml_model_input(
@@ -299,10 +353,10 @@ def build_ml_model_input(
             data=model_input.model_dump(),
         )
     except KeyError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:build_ml_model_input -- DETAIL: Missing model input field -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:build_ml_model_input -- DETAIL: Missing model input field -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=500, message="ML model input is missing required flight data.", data=str(e))
     except ValidationError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:build_ml_model_input -- DETAIL: Model input validation failed -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:build_ml_model_input -- DETAIL: Model input validation failed -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=400, message="ML model input failed validation.", data=str(e))
 
 def predict_delay_from_model(model_input: dict[str, Any]) -> FuncResponse:
@@ -324,40 +378,39 @@ def predict_delay_from_model(model_input: dict[str, Any]) -> FuncResponse:
         if hasattr(model, "predict_proba"):
             probability = float(model.predict_proba(model_df)[0][1])
 
-        prediction_response = FlightPredictionResponse(
-            is_significant_delay=bool(prediction),
-            significant_delay_probability=probability,
-        )
         return FuncResponse(
             ok=True,
             code=200,
             message="Flight delay prediction complete.",
-            data=prediction_response.model_dump(),
+            data={
+                "is_significant_delay": bool(prediction),
+                "significant_delay_probability": probability,
+            },
         )
     except KeyError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Missing model input field -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Missing model input field -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=500, message="ML model input is missing required fields.", data=str(e))
     except FileNotFoundError as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Model file missing -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Model file missing -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=500, message="ML model file was not found.", data=str(e))
     except Exception as e:
-        logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Model prediction failed -- MESSAGE: %s", str(e))
+        logger.info("SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Model prediction failed -- MESSAGE: %s", str(e))
         return FuncResponse(ok=False, code=500, message="ML model prediction failed.", data=str(e))
 
 # ==================== Service ====================
-async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
-    logger.info("%(asctime)s -- SERVICE START:send_flight__service")
+async def predict_flight__service(body:FlightPredRequest) -> FuncResponse:
+    logger.info("SERVICE START:send_flight__service")
 
 
     # === Check the aiport input is good ===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC START:is_in_table")
+    logger.info("SERVICE:send_flight__service - FUNC START:is_in_table")
     is_in_table_resp:FuncResponse = is_in_table(
         table_name="weather_req_table",
         column="code",
         airprot_code=body.depIataCode
     )
     if not is_in_table_resp.ok:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:is_in_table -- DETAIL: %s", is_in_table_resp.message)
+        logger.info("SERVICE END:send_flight__service -- FUNC:is_in_table -- DETAIL: %s", is_in_table_resp.message)
         code = is_in_table_resp.code or 500
         message = is_in_table_resp.message or "Failed checking airport against weather request table."
         return FuncResponse(
@@ -371,7 +424,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
             ).model_dump(),
         )
     if is_in_table_resp.data is not True:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:is_in_table -- DETAIL: Airport %s not found", body.depIataCode)
+        logger.info("SERVICE END:send_flight__service -- FUNC:is_in_table -- DETAIL: Airport %s not found", body.depIataCode)
         return FuncResponse(
             ok=False,
             code=404,
@@ -385,13 +438,13 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
 
     # === Sending flight-data API request
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:fetch_scheduled_flight_info_resp")
+    logger.info("SERVICE:send_flight__service -- FUNC START:fetch_scheduled_flight_info_resp")
     fetch_scheduled_flight_info_resp: RequestWithRetryResponse = await fetch_scheduled_flight_info(body)
     f_err = fetch_scheduled_flight_info_resp.error
     f_success = fetch_scheduled_flight_info_resp.success
     f_data = f_success.get("data") if f_success else None
     if f_err or not f_data:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:fetch_scheduled_flight_info_resp -- DETAIL: %s", f_err or "missing data")
+        logger.info("SERVICE END:send_flight__service -- FUNC:fetch_scheduled_flight_info_resp -- DETAIL: %s", f_err or "missing data")
         code = f_err.code if f_err else 502
         return FuncResponse(
             ok=False,
@@ -408,7 +461,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
             ),
         )
     if not isinstance(f_data, list):
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:fetch_scheduled_flight_info_resp -- DETAIL: Aviation API data payload was invalid")
+        logger.info("SERVICE END:send_flight__service -- FUNC:fetch_scheduled_flight_info_resp -- DETAIL: Aviation API data payload was invalid")
         return FuncResponse(
             ok=False,
             code=502,
@@ -422,13 +475,13 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
 
     # === Matching flight-data resp to request sent ===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:match_flight_to_request")
+    logger.info("SERVICE:send_flight__service -- FUNC START:match_flight_to_request")
     flight_matched = match_flight_to_request(
         api_data=f_data,
         req_flight=body
     )
     if not flight_matched.ok:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:match_flight_to_request -- DETAIL: No flight matched to the AviationStack API response")
+        logger.info("SERVICE END:send_flight__service -- FUNC:match_flight_to_request -- DETAIL: No flight matched to the AviationStack API response")
         code = flight_matched.code or 500
         message = flight_matched.message or "No flight matched to the AviationStack API response"
         return FuncResponse(
@@ -443,10 +496,10 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
 
     # === Building flight-data from API resp ===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:build_flight_data")
+    logger.info("SERVICE:send_flight__service -- FUNC START:build_flight_data")
     matched_flight = flight_matched.data
     if not isinstance(matched_flight, dict):
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:match_flight_to_request -- DETAIL: Matched flight payload was invalid")
+        logger.info("SERVICE END:send_flight__service -- FUNC:match_flight_to_request -- DETAIL: Matched flight payload was invalid")
         return FuncResponse(
             ok=False,
             code=500,
@@ -461,7 +514,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
     flight_sch_dep_time = get_nested_str(matched_flight, "departure", "scheduledTime")
     flight_sch_arr_time = get_nested_str(matched_flight, "arrival", "scheduledTime")
     if not flight_sch_dep_time or not flight_sch_arr_time:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_flight_data -- DETAIL: Missing scheduled times")
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_flight_data -- DETAIL: Missing scheduled times")
         return FuncResponse(
             ok=False,
             code=502,
@@ -481,7 +534,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
         req_flight=body
     )
     if not built_data.ok:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_flight_data -- DETAIL: %s", built_data.message)
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_flight_data -- DETAIL: %s", built_data.message)
         code = built_data.code or 500
         message = built_data.message or "Failed to build flight data."
         return FuncResponse(
@@ -497,7 +550,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
     flight_data = built_data.data
     if not isinstance(flight_data, dict):
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_flight_data -- DETAIL: Built flight data payload was invalid")
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_flight_data -- DETAIL: Built flight data payload was invalid")
         return FuncResponse(
             ok=False,
             code=500,
@@ -511,10 +564,10 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
 
     # === Calc flight distance ===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:build_flight_distance")
+    logger.info("SERVICE:send_flight__service -- FUNC START:build_flight_distance")
     distance_resp = build_flight_distance(flight_data)
     if not distance_resp.ok:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_flight_distance -- DETAIL: %s", distance_resp.message)
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_flight_distance -- DETAIL: %s", distance_resp.message)
         code = distance_resp.code or 500
         message = distance_resp.message or "Failed to calculate flight distance."
         return FuncResponse(
@@ -529,7 +582,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
         )
 
     if not isinstance(distance_resp.data, dict) or "fl_distance" not in distance_resp.data:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_flight_distance -- DETAIL: Distance payload was invalid")
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_flight_distance -- DETAIL: Distance payload was invalid")
         return FuncResponse(
             ok=False,
             code=500,
@@ -542,7 +595,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
         )
     fl_distance = distance_resp.data["fl_distance"]
     if not isinstance(fl_distance, int) or isinstance(fl_distance, bool):
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_flight_distance -- DETAIL: Distance value was invalid")
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_flight_distance -- DETAIL: Distance value was invalid")
         return FuncResponse(
             ok=False,
             code=500,
@@ -557,7 +610,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
 
     # === Open-Meteo API===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:fetch_origin_weather_info")
+    logger.info("SERVICE:send_flight__service -- FUNC START:fetch_origin_weather_info")
     origin_weather_resp: RequestWithRetryResponse = await fetch_weather_info(
         lat=flight_data["origin_lat"],
         lon=flight_data["origin_long"],
@@ -565,7 +618,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
     )
     origin_weather_err = origin_weather_resp.error
     if origin_weather_err or not origin_weather_resp.success:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:fetch_origin_weather_info -- DETAIL: %s", origin_weather_err or "missing data")
+        logger.info("SERVICE END:send_flight__service -- FUNC:fetch_origin_weather_info -- DETAIL: %s", origin_weather_err or "missing data")
         code = origin_weather_err.code if origin_weather_err else 502
         return FuncResponse(
             ok=False,
@@ -582,7 +635,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
             ),
         )
     # dest-req
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:fetch_dest_weather_info")
+    logger.info("SERVICE:send_flight__service -- FUNC START:fetch_dest_weather_info")
     dest_weather_resp: RequestWithRetryResponse = await fetch_weather_info(
         lat=flight_data["dest_lat"],
         lon=flight_data["dest_long"],
@@ -590,7 +643,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
     )
     dest_weather_err = dest_weather_resp.error
     if dest_weather_err or not dest_weather_resp.success:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:fetch_dest_weather_info -- DETAIL: %s", dest_weather_err or "missing data")
+        logger.info("SERVICE END:send_flight__service -- FUNC:fetch_dest_weather_info -- DETAIL: %s", dest_weather_err or "missing data")
         code = dest_weather_err.code if dest_weather_err else 502
         return FuncResponse(
             ok=False,
@@ -609,14 +662,14 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
 
 
     # === Type check for model ===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:build_ml_model_input")
+    logger.info("SERVICE:send_flight__service -- FUNC START:build_ml_model_input")
     model_input_resp = build_ml_model_input(
         flight_data=flight_data,
         origin_weather_data=origin_weather_resp.success,
         dest_weather_data=dest_weather_resp.success,
     )
     if not model_input_resp.ok:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_ml_model_input -- DETAIL: %s", model_input_resp.message)
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_ml_model_input -- DETAIL: %s", model_input_resp.message)
         code = model_input_resp.code or 500
         message = model_input_resp.message or "Failed to build ML model input."
         return FuncResponse(
@@ -631,7 +684,7 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
         )
 
     if not isinstance(model_input_resp.data, dict):
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:build_ml_model_input -- DETAIL: Model input payload was invalid")
+        logger.info("SERVICE END:send_flight__service -- FUNC:build_ml_model_input -- DETAIL: Model input payload was invalid")
         return FuncResponse(
             ok=False,
             code=500,
@@ -644,10 +697,10 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
         )
 
     # === Model prediction ===
-    logger.info("%(asctime)s -- SERVICE:send_flight__service -- FUNC START:predict_delay_from_model")
+    logger.info("SERVICE:send_flight__service -- FUNC START:predict_delay_from_model")
     prediction_resp:FuncResponse = predict_delay_from_model(model_input_resp.data)
     if not prediction_resp.ok:
-        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:predict_delay_from_model -- DETAIL: %s", prediction_resp.message)
+        logger.info("SERVICE END:send_flight__service -- FUNC:predict_delay_from_model -- DETAIL: %s", prediction_resp.message)
         code = prediction_resp.code or 500
         message = prediction_resp.message or "Failed to predict flight delay."
         return FuncResponse(
@@ -661,5 +714,50 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
             ).model_dump(),
         )
 
-    logger.info("%(asctime)s -- SERVICE END:send_flight__service -- DETAIL: Flight delay prediction complete")
-    return prediction_resp
+    prediction_data = prediction_resp.data
+    if not isinstance(prediction_data, dict):
+        logger.info("SERVICE END:send_flight__service -- FUNC:predict_delay_from_model -- DETAIL: Prediction payload was invalid")
+        return FuncResponse(
+            ok=False,
+            code=500,
+            message="Prediction payload was invalid.",
+            data=PresentError(
+                code=500,
+                description="Prediction payload was invalid.",
+                error=str(prediction_data),
+            ).model_dump(),
+        )
+
+    try:
+        prediction_response = FlightPredictionResponse(
+            is_significant_delay=prediction_data["is_significant_delay"],
+            significant_delay_probability=prediction_data["significant_delay_probability"],
+            coordinates=FlightDistanceRequest(
+                origin_lat=flight_data["origin_lat"],
+                origin_long=flight_data["origin_long"],
+                dest_lat=flight_data["dest_lat"],
+                dest_long=flight_data["dest_long"],
+            ),
+            distance=FlightDistanceResponse(**distance_resp.data),
+            aviationApiData=MatchedAviationAPIDataResponse(**flight_data),
+        )
+    except (KeyError, TypeError, ValidationError) as e:
+        logger.info("SERVICE END:send_flight__service -- DETAIL: Failed to build prediction response -- MESSAGE: %s", str(e))
+        return FuncResponse(
+            ok=False,
+            code=500,
+            message="Failed to build prediction response.",
+            data=PresentError(
+                code=500,
+                description="Failed to build prediction response.",
+                error=str(e),
+            ).model_dump(),
+        )
+    
+    logger.info("SERVICE END:send_flight__service -- DETAIL: Flight delay prediction complete")
+    return FuncResponse(
+        ok=True,
+        code=200,
+        message=prediction_resp.message,
+        data=prediction_response,
+    )
