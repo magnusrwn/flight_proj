@@ -4,9 +4,10 @@
 All code in this repo is reviewed line by line to ensure I understand it, and the vast majority is written by hand. This is mainly a refresh/ improve task however, also for learning (with thing such as ML, testing, pyplot), of course. So, code will take time, and is likely hand written, or prompted and then significantly chopped down. This may also lead to code-comments of explanations of different things.
 
 ## API's used
-- Open-meteo historical weather api: https://open-meteo.com/
+- Open-meteo historical weather api link [here](https://open-meteo.com/)
 ## External data sources
-- Flight data source (untracked in this repo): https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data
+- Flight data source from kaggle (untracked in this repo) [here](https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data)
+- Find my trained model on google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
 
 ## Frontend scaffold
 - `frontend/` contains a single-page `Vite + React + TypeScript` app scaffold.
