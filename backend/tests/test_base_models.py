@@ -13,7 +13,7 @@ from src.models.base_models import (
     FlightDistanceResponse,
     FlightPredictionResponse,
     MLModelNumericInput,
-    SendFlightRequest,
+    FlightPredRequest,
 )
 
 
@@ -76,7 +76,7 @@ class BaseModelTests(unittest.TestCase):
         ]
 
         with self.assertRaises(BaseModelFieldCountError):
-            test_field_numbers(schema, SendFlightRequest)
+            test_field_numbers(schema, FlightPredRequest)
 
     def test_fields(self) -> None:
         schema = [
@@ -85,7 +85,7 @@ class BaseModelTests(unittest.TestCase):
         ]
 
         with self.assertRaises(ValidationError) as ctx:
-            test_schema_fields(schema, SendFlightRequest)
+            test_schema_fields(schema, FlightPredRequest)
 
         # Uncomment when you want to test for specific errs
         # errors = ctx.exception.errors()

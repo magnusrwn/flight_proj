@@ -24,7 +24,7 @@ from src.models.base_models import (
     FlightPredictionResponse,
     FuncResponse,
     RequestWithRetryResponse,
-    SendFlightRequest,
+    FlightPredRequest,
 )
 
 
@@ -87,7 +87,7 @@ class FlightPredictionServiceTests(unittest.TestCase):
         )
 
     def test_match_flight_to_request__skips_invalid_payloads(self):
-        request = SendFlightRequest(
+        request = FlightPredRequest(
             depIataCode="JFK",
             destIataCode="LAX",
             date=date(2026, 8, 7),
@@ -165,7 +165,7 @@ class FlightPredictionServiceTests(unittest.TestCase):
                 -118.4085,
             )
         )
-        request = SendFlightRequest(
+        request = FlightPredRequest(
             depIataCode="JFK",
             destIataCode="LAX",
             date=date(2026, 8, 7),

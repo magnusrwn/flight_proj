@@ -24,7 +24,7 @@ from src.models.base_models import (
     MLModelInput,
     MLModelNumericInput,
     PresentError,
-    SendFlightRequest,
+    FlightPredRequest,
     RequestWithRetryResponse,
     MatchedAviationAPIDataResponse
 )
@@ -76,7 +76,7 @@ MODEL_FEATURES = [
 ]
 
 # ==================== Helpers ====================
-def match_flight_to_request(api_data:list[dict[str, Any]], req_flight:SendFlightRequest) -> FuncResponse:
+def match_flight_to_request(api_data:list[dict[str, Any]], req_flight:FlightPredRequest) -> FuncResponse:
     '''
     Itterates AviationStack API response to match the requested flight to the API response.
     '''
@@ -102,7 +102,7 @@ def match_flight_to_request(api_data:list[dict[str, Any]], req_flight:SendFlight
     logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:match_flight_to_request -- DETAIL: No match found to API response")
     return FuncResponse(ok=False, code=404, message="Flight could not be matched to Aviation Stack response")
 
-def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:SendFlightRequest) -> FuncResponse:
+def build_flight_data(sch_dep_time:str, sch_arr_time:str, req_flight:FlightPredRequest) -> FuncResponse:
     '''
     Creates final flight datapoint from:
     - Duckdb (code, lat, long, name)
@@ -324,15 +324,14 @@ def predict_delay_from_model(model_input: dict[str, Any]) -> FuncResponse:
         if hasattr(model, "predict_proba"):
             probability = float(model.predict_proba(model_df)[0][1])
 
-        prediction_response = FlightPredictionResponse(
-            is_significant_delay=bool(prediction),
-            significant_delay_probability=probability,
-        )
         return FuncResponse(
             ok=True,
             code=200,
             message="Flight delay prediction complete.",
-            data=prediction_response.model_dump(),
+            data={
+                "is_significant_delay": bool(prediction),
+                "significant_delay_probability": probability,
+            },
         )
     except KeyError as e:
         logger.info("%(asctime)s -- SERVICE:send_flight__service - FUNC:predict_delay_from_model -- DETAIL: Missing model input field -- MESSAGE: %s", str(e))
@@ -345,7 +344,7 @@ def predict_delay_from_model(model_input: dict[str, Any]) -> FuncResponse:
         return FuncResponse(ok=False, code=500, message="ML model prediction failed.", data=str(e))
 
 # ==================== Service ====================
-async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
+async def predict_flight__service(body:FlightPredRequest) -> FuncResponse:
     logger.info("%(asctime)s -- SERVICE START:send_flight__service")
 
 
@@ -661,5 +660,50 @@ async def predict_flight__service(body:SendFlightRequest) -> FuncResponse:
             ).model_dump(),
         )
 
+    prediction_data = prediction_resp.data
+    if not isinstance(prediction_data, dict):
+        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- FUNC:predict_delay_from_model -- DETAIL: Prediction payload was invalid")
+        return FuncResponse(
+            ok=False,
+            code=500,
+            message="Prediction payload was invalid.",
+            data=PresentError(
+                code=500,
+                description="Prediction payload was invalid.",
+                error=str(prediction_data),
+            ).model_dump(),
+        )
+
+    try:
+        prediction_response = FlightPredictionResponse(
+            is_significant_delay=prediction_data["is_significant_delay"],
+            significant_delay_probability=prediction_data["significant_delay_probability"],
+            coordinates=FlightDistanceRequest(
+                origin_lat=flight_data["origin_lat"],
+                origin_long=flight_data["origin_long"],
+                dest_lat=flight_data["dest_lat"],
+                dest_long=flight_data["dest_long"],
+            ),
+            distance=FlightDistanceResponse(**distance_resp.data),
+            aviationApiData=MatchedAviationAPIDataResponse(**flight_data),
+        )
+    except (KeyError, TypeError, ValidationError) as e:
+        logger.info("%(asctime)s -- SERVICE END:send_flight__service -- DETAIL: Failed to build prediction response -- MESSAGE: %s", str(e))
+        return FuncResponse(
+            ok=False,
+            code=500,
+            message="Failed to build prediction response.",
+            data=PresentError(
+                code=500,
+                description="Failed to build prediction response.",
+                error=str(e),
+            ).model_dump(),
+        )
+    
     logger.info("%(asctime)s -- SERVICE END:send_flight__service -- DETAIL: Flight delay prediction complete")
-    return prediction_resp
+    return FuncResponse(
+        ok=True,
+        code=200,
+        message=prediction_resp.message,
+        data=prediction_response,
+    )

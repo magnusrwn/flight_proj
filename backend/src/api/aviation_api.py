@@ -9,13 +9,13 @@ if BACKEND_ROOT not in sys.path:
 from src.utils import request_with_retry
 from src.models.base_models import (
     PresentError,
-    SendFlightRequest,
+    FlightPredRequest,
     RequestWithRetryResponse,
 )
 
 load_dotenv()
 
-async def fetch_scheduled_flight_info(body:SendFlightRequest) -> RequestWithRetryResponse:
+async def fetch_scheduled_flight_info(body:FlightPredRequest) -> RequestWithRetryResponse:
     method = "GET"
     url = "https://api.aviationstack.com/v1/flightsFuture"
     api_key = os.getenv("AVIATION_STACK_API_KEY")
