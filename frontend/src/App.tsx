@@ -4,23 +4,17 @@ import { MapPanel } from "./features/map-panel/MapPanel";
 import { PredictionResult } from "./features/prediction-result/PredictionResult";
 import { fetchPrediction } from "./lib/api";
 import type {
-  FlightLookupRequest,
-  PredictionResponse,
+  FlightPredRequest,
+  FlightPredResponse,
   RequestState,
 } from "./types/api";
 
-const summaryItems = [
-  "Historical BTS flight performance",
-  "Weather-enriched route context",
-  "Prediction-ready backend contract",
-];
-
 export default function App() {
   const [requestState, setRequestState] = useState<RequestState>("idle");
-  const [result, setResult] = useState<PredictionResponse | null>(null);
+  const [result, setResult] = useState<FlightPredResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function handleLookup(payload: FlightLookupRequest) {
+  async function handleLookup(payload: FlightPredRequest) {
     setRequestState("loading");
     setErrorMessage(null);
 
@@ -49,26 +43,25 @@ export default function App() {
       >
         <div className="
          space-x-5
-         h-90
-         grid
-         grid-rows-2
-         grid-cols-1
-         gap-y-10
-        
+         h-fit
+
+         xl:h-90
          xl:mb-10
          xl:flex
         ">
           <header className="
             overflow-hidden
             rounded-2xl
-            border
             p-8
             sm:p-10
             h-full w-full
-            xl:
+            bg-[#0a1b317b]
+            shadow-sm
+            shadow-amber-50
+            border-2
           ">
-            <div className="relative grid gap-8 lg:grid-cols-[1.5fr_0.9fr]">
-              <div>
+            <div className="gap-8 lg:grid-cols-[1.5fr_0.9fr]">
+              <div className="w-auto">
                   <h1 className="text-2xl text-white sm:text-5xl pb-2 underline underline-offset-4 decoration-2">
                     Predict domestic U.S. flight disruption from one lookup.
                   </h1>

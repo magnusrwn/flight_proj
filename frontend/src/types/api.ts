@@ -2,42 +2,45 @@ export type RequestState = "idle" | "loading" | "success" | "error";
 
 export type FlightPredRequest = {
   flightNumber:string;
-  date: string; // check this
+  date: string;
   depIataCode: string;
   destIataCode: string;
 };
 
-// Validate use
-// export type PredictionCard = {
-//   label: string;
-//   value: string;
-//   helper: string;
-// };
 
-export type AirportMapPoint = {
-  originCode: string;
-  destCode: string;
-  originLat: number;
-  originLong: number;
-};
 
 // Mock -- Base nothing from this
-export type PredictionResponse = {
-  // lookup: {
-  //   flightCode: string;
-  //   carrier?: string;
-  // };
-  // route: {
-  //   originNameLabel: string;
-  //   destinationNameLabel: string;
-  // };
-  // // predictionCards: PredictionCard[];
-  // // explanations: {
-  // //   weatherSummary?: string;
-  // //   featureSummary?: string;
-  // // };
-  // map: {
-  //   origin?: AirportMapPoint;
-  //   destination?: AirportMapPoint;
-  // };
+export type FlightPredResponse = {
+  is_significant_delay: boolean;
+  significant_delay_probability: number | null;
+
+  coordinates: {
+    origin_lat: number;
+    origin_long: number;
+    dest_lat: number;
+    dest_long: number;
+  },
+  distance: {
+    fl_distance:number;
+  }
+  aviationApiData: {
+    origin:string;
+    origin_city_name: string;
+    origin_lat: number;
+    origin_long: number;
+    
+    dest: string;
+    dest_city_name: string;
+    dest_lat: number;
+    dest_long: number;
+
+    flight_date: string;
+    day_of_month: number;
+    day_of_week: number;
+    pred_dep_time: number;
+    pred_arr_time: number;
+    pred_elapsed_time: number;
+    year: number;
+    month: number;
+  }
 };
