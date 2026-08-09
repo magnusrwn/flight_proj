@@ -35,7 +35,7 @@ export function PredictionResult({
           }`}
         >
           <SummaryRow
-            label="Delay Risk"
+            label="Delay Risk: >25mins"
             value={
               result
                 ? result.is_significant_delay
@@ -53,7 +53,7 @@ export function PredictionResult({
             value={result?.aviationApiData.dest ?? "--"}
           />
           <SummaryRow
-            label="Probability"
+            label="Probability of Significant Delay"
             value={
               probability === null || probability === undefined
                 ? "--"
@@ -61,7 +61,7 @@ export function PredictionResult({
             }
           />
           <SummaryRow
-            label="Distance"
+            label="Flight Distance (mi)"
             value={
               result ? `${Math.round(result.distance.fl_distance)} mi` : "--"
             }

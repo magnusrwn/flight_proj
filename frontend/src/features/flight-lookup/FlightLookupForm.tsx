@@ -14,6 +14,8 @@ type FormErrors = {
   scheduledDepartureTime?:string;
 }
 
+type FormField = keyof FormErrors;
+
 function isDateString(date:string):boolean{
   const pattern = /^\d{4}-\d{2}-\d{2}$/; // '^' = start of string, '$' end of string, '/', '/' enclose
   return pattern.test(date);
@@ -44,9 +46,30 @@ export function FlightLookupForm({
   const [depDate, setDepDate] = useState("");
   const [scheduledDepartureTime, setScheduledDepartureTime] = useState("");
   const [errors, setErrors] = useState<FormErrors>({})
+
+  function updateField(
+    field: FormField,
+    value: string,
+    setValue: (nextValue: string) => void,
+  ) {
+    setValue(value);
+    setErrors((currentErrors) => {
+      if (!currentErrors[field]) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+  }
   
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isLoading) {
+      return;
+    }
     
     const nextErrors: FormErrors = {};
     const trimmedDepAiport = depAirport.trim().toUpperCase();
@@ -110,7 +133,7 @@ export function FlightLookupForm({
             placeholder="YYYY-MM-DD"
             type="text"
             value={depDate}
-            onChange={(event) => setDepDate(event.target.value)}
+            onChange={(event) => updateField("depDate", event.target.value, setDepDate)}
           />
           {errors.depDate && (
             <p className="text-sm text-red-300">{errors.depDate}</p>
@@ -127,7 +150,13 @@ export function FlightLookupForm({
             step={60}
             type="time"
             value={scheduledDepartureTime}
-            onChange={(event) => setScheduledDepartureTime(event.target.value)}
+            onChange={(event) =>
+              updateField(
+                "scheduledDepartureTime",
+                event.target.value,
+                setScheduledDepartureTime,
+              )
+            }
           />
           {errors.scheduledDepartureTime && (
             <p className="text-sm text-red-300">{errors.scheduledDepartureTime}</p>
@@ -135,9 +164,6 @@ export function FlightLookupForm({
         </label>
 
         <fieldset className="space-y-2">
-          <legend className={errorClassName(Boolean(errors.depAirport || errors.arrAirport))}>
-            Airports
-          </legend>
           <div className="grid grid-cols-2 gap-x-4">
             <div className="space-y-2">
               <label
@@ -153,7 +179,9 @@ export function FlightLookupForm({
                 placeholder="PHX"
                 type="text"
                 value={depAirport}
-                onChange={(event) => setDepAirport(event.target.value)}
+                onChange={(event) =>
+                  updateField("depAirport", event.target.value, setDepAirport)
+                }
               />
               {errors.depAirport && (
                 <p className="text-sm text-red-300">{errors.depAirport}</p>
@@ -173,7 +201,9 @@ export function FlightLookupForm({
                 placeholder="LAX"
                 type="text"
                 value={arrAirport}
-                onChange={(event) => setArrAirport(event.target.value)}
+                onChange={(event) =>
+                  updateField("arrAirport", event.target.value, setArrAirport)
+                }
               />
               {errors.arrAirport && (
                 <p className="text-sm text-red-300">{errors.arrAirport}</p>

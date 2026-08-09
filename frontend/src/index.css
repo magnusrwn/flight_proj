@@ -10,12 +10,8 @@
   --color-ink: #09111d;
   --color-paper: #f8f5ef;
   --color-mist: #b8c2d1;
-  --color-surface: #132236;
-  --color-surface-soft: #1d3048;
   --color-accent: #ffb84d;
-  --color-accent-soft: #ffdca2;
   --color-good: #4dd0a4;
-  --color-alert: #ff7b7b;
 }
 
 body {
