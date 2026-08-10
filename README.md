@@ -64,7 +64,9 @@ And so, I thought it would be an interesting process to try and use (nearly) fre
 - Ensure uv is installed on your computer
 
 ### Backend Steps:
-- Open a new terminal
+- Download my ML Model from Google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
+- Open a new terminal and cd to the project root
+- Run the command `mv [PATH-TO-DOWNLOADED-MODEL].joblib backend/src/ml/model/model.joblib`
 - `cd /backend`
 - `uv run uvicorn src.main:app --reload`
 
