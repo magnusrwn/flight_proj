@@ -7,9 +7,6 @@ export type FlightPredRequest = {
   destIataCode: string;
 };
 
-
-
-// Mock -- Base nothing from this
 export type FlightPredResponse = {
   is_significant_delay: boolean;
   significant_delay_probability: number | null;
