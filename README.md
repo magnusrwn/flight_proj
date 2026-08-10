@@ -55,9 +55,11 @@ And so, I thought it would be an interesting process to try and use (nearly) fre
 
 >For ML docs look [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/ml.md)
 
+---
+
 ## Running Locally
 
-## Pre-reqs:
+### Pre-reqs:
 - Ensure Python is installed on your computer
 - Ensure uv is installed on your computer
 
@@ -138,7 +140,7 @@ Note, being the only backend API communication this is already configured in the
     }
 }
 ```
-
+>See API documentation [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/api.md)
 ## Project Structure
 ```text
 .
