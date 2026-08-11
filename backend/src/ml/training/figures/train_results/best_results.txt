@@ -1,0 +1,37 @@
+Best CV F1: 0.1481
+Accuracy: 0.9400
+Precision: 0.0000
+Recall: 0.0000
+F1: 0.0000
+ROC AUC: 0.6224
+Best params:  {
+    'classifier__n_estimators': 150,
+    'classifier__min_samples_split': 20,
+    'classifier__min_samples_leaf': 10,
+    'classifier__max_samples': 0.9,
+    'classifier__max_features': 'sqrt',
+    'classifier__max_depth': 12,
+    'classifier__class_weight': 'balanced_subsample',
+    'classifier__bootstrap': True
+}
+==RUN-START===
+
+==RUN-START===
+Run: 2026-08-03 -- 13-59-33
+Best CV F1: 0.4609
+Accuracy: 0.7796
+Precision: 0.4201
+Recall: 0.5282
+F1: 0.4680
+ROC AUC: 0.7577
+Best params:  {
+    'classifier__n_estimators': 350,
+    'classifier__min_samples_split': 20,
+    'classifier__min_samples_leaf': 10,
+    'classifier__max_samples': 0.9,
+    'classifier__max_features': 0.5,
+    'classifier__max_depth': 18,
+    'classifier__class_weight': 'balanced_subsample',
+    'classifier__bootstrap': True
+}
+==RUN-START===
