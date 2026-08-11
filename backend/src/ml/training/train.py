@@ -44,6 +44,9 @@ from datetime import datetime as dt
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 DUCKDB_PATH = BACKEND_ROOT/"data/duck_database.duckdb"
 FIGURES_PATH = BACKEND_ROOT/"src/ml/training/figures"
+FIGURES_PATH.mkdir(parents=True, exist_ok=True)
+TRAIN_RESULTS_PATH = FIGURES_PATH/"train_results"
+TRAIN_RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 SIGNIFICANT_DELAY_MINUTES = 25
 
 
@@ -52,12 +55,12 @@ SIGNIFICANT_DELAY_MINUTES = 25
 
 # Getting data_df
 con = ddb.connect(DUCKDB_PATH)
-data_df = con.sql("""
+raw_data_df = con.sql("""
     SELECT * FROM model_dataset LIMIT 500000
 """).df()
 con.close()
 
-data_df = data_df.dropna(axis=0)
+data_df = raw_data_df.dropna(axis=0)
 
 
 # In[19]:
@@ -107,22 +110,23 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # Correlations
 
-numeric_features = data_df[x_numeric_features + ["delay"]].dropna(axis=0).select_dtypes(include="number")
-delay_correlations = (
+numeric_features = data_df[x_numeric_features].copy()
+numeric_features["significant_delay"] = y.to_numpy()
+target_correlations = (
     numeric_features
-    .corr(numeric_only=True)["delay"]
-    .drop("delay")
+    .corr(numeric_only=True)["significant_delay"]
+    .drop("significant_delay")
     .dropna()
     .sort_values(key=lambda values: values.abs())
 )
 
-fig, ax = plt.subplots(figsize=(11, max(8, 0.34 * len(delay_correlations))))
-colors = ["#b45309" if value < 0 else "#0f766e" for value in delay_correlations]
+fig, ax = plt.subplots(figsize=(11, max(8, 0.34 * len(target_correlations))))
+colors = ["#b45309" if value < 0 else "#0f766e" for value in target_correlations]
 
-ax.barh(delay_correlations.index, delay_correlations.values, color=colors)
+ax.barh(target_correlations.index, target_correlations.values, color=colors)
 ax.axvline(0, color="#222222", linewidth=0.8)
-ax.set_title("Pre-exploration Pearson correlation with delay")
-ax.set_xlabel("Correlation with delay")
+ax.set_title("Pearson correlation with significant delay target")
+ax.set_xlabel(f"Correlation with significant delay (>={SIGNIFICANT_DELAY_MINUTES} mins)")
 ax.set_ylabel("Numeric feature")
 ax.grid(axis="x", alpha=0.25)
 
@@ -137,13 +141,16 @@ plt.close(fig)
 # Distribution
 fig, ax = plt.subplots(figsize=(10, 6))
 
-ax.hist(data_df["delay"].dropna(), bins=range(-60, 301, 10), color="slategray", edgecolor="white")
+target_distribution = y.value_counts().sort_index().rename({0: "not_significant", 1: "significant"})
+bar_colors = ["#0f766e", "#b45309"]
 
-ax.set_title("Distribution of flight delays")
-ax.set_xlabel("Delay (mins)")
+ax.bar(target_distribution.index, target_distribution.values, color=bar_colors, edgecolor="white")
+
+ax.set_title("Significant delay target distribution")
+ax.set_xlabel(f"Target class (>={SIGNIFICANT_DELAY_MINUTES} mins)")
 ax.set_ylabel("Number of flights")
-
-ax.set_xlim(-10, 151)
+ax.grid(axis="y", alpha=0.25)
+ax.bar_label(ax.containers[0], fmt="%d")
 
 fig.tight_layout()
 fig.savefig(FIGURES_PATH/ "delay_distribution.png", dpi=300, bbox_inches="tight")
@@ -155,14 +162,38 @@ plt.close(fig)
 
 # Missing values
 
-missing = data_df[x_features + ["delay"]].isna().mean().sort_values(ascending=False)
+missing_source = raw_data_df.loc[raw_data_df["delay"].notna(), x_features + ["delay"]].copy()
+missing_source["significant_delay"] = (
+    missing_source["delay"] >= SIGNIFICANT_DELAY_MINUTES
+).astype(int)
+missing_by_target = (
+    missing_source
+    .groupby("significant_delay")[x_features]
+    .apply(lambda frame: frame.isna().mean())
+    .T
+    .rename(columns={0: "not_significant", 1: "significant"})
+    .sort_values(by=["significant", "not_significant"], ascending=False)
+)
 
-fig, ax = plt.subplots(figsize=(10, 8))
-ax.barh(missing.index, missing.values)
+fig, axes = plt.subplots(
+    1,
+    2,
+    figsize=(14, max(8, 0.34 * len(missing_by_target))),
+    sharey=True,
+)
 
-ax.set_title("Missing values in data")
-ax.set_xlabel("Fraction missing")
-ax.set_ylabel("Feature")
+for ax, label, color in zip(
+    axes,
+    ["not_significant", "significant"],
+    ["#0f766e", "#b45309"],
+):
+    ax.barh(missing_by_target.index, missing_by_target[label], color=color)
+    ax.set_title(label.replace("_", " ").title())
+    ax.set_xlabel("Fraction missing")
+    ax.grid(axis="x", alpha=0.25)
+
+axes[0].set_ylabel("Feature")
+fig.suptitle(f"Missing values by significant delay target (>={SIGNIFICANT_DELAY_MINUTES} mins)")
 
 fig.tight_layout()
 fig.savefig(FIGURES_PATH/ "missing_values.png", dpi=300, bbox_inches="tight")
@@ -258,11 +289,10 @@ ROC AUC: {roc_auc_score(y_test, pred_probs):.4f}
 Best params: {grid_search.best_params_}
 ==RUN-START===
 """
-with open(FIGURES_PATH.parents[1]/ "training/train_results/best_results.txt", "a") as f:
+with open(TRAIN_RESULTS_PATH/"best_results.txt", "a") as f:
     try:
         f.write(results)
     except:
         print("Error writing results from train, check terminal")
     finally:
         print(results)
-
