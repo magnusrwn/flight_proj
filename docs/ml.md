@@ -21,30 +21,34 @@ Use this file as a guided draft. Answer the questions under each heading, then r
 ---
 
 ## Problem Definition
+For predicting an exact delay, regression would usually be the prefered way. However, that being said, after training and tring to tune regressive random forests I discorvered it's quite hard to get notably better than taking hte average of the training data.
 
-- What real-world problem are you trying to solve?
-- Why is flight delay prediction useful or interesting?
-- Is this a classification problem, regression problem, or both at different stages?
-- What is the prediction made before the flight departs?
-- What assumptions are you making about what data is available before departure?
+Thus, I thoguht that making hte delay a binary would be beneficial for the training results, allowing for a higher probability of actual utility. This change can be seen clearly in `/backend/src/ml/train/train.ipynb`.
 
-## Prediction Target
+The model preformed better than taking the avg when the Y was turned into a binary and the model switched to a classifier however, still has room for improvement.
 
-- What exact target variable does the model learn?
-- How is `total_delay` or `delay` calculated from raw flight data?
-- What threshold defines a significant delay?
-- Why was that threshold chosen?
-- Does the model predict any delay, a significant delay, or delay duration?
-- What does class `0` mean, and what does class `1` mean?
+---
 
 ## Success Metrics
 
+> NOTE: start ec2 and see logs for this
 - Which metrics do you use to judge the model?
 - Why are accuracy, precision, recall, F1, and ROC AUC useful or limited here?
 - Which metric matters most for this project, and why?
 - What baseline should the trained model beat?
 - What score would be good enough for a demo or portfolio project?
 - How should class imbalance affect metric choice?
+
+---
+
+## Data Cleaning
+> Explain the data clean process
+- What cleaning steps happen before model training?
+- Which rows are removed and why?
+- Which columns are cast to new types?
+- How are missing delay values handled?
+- How are schema mismatches detected?
+- What data cleaning choices could bias the model?
 
 ---
 
@@ -59,109 +63,118 @@ Use this file as a guided draft. Answer the questions under each heading, then r
 
 ---
 
-## Dataset descriptions
-
----
-
-### Weather Data
-
-- Which Open-Meteo product is used for training data?
-- Which Open-Meteo product is used at prediction time?
-- What daily weather variables are requested?
-- Why are weather features collected for both origin and destination?
-- How are failed weather requests tracked?
-- Are weather values historical observations, forecasts, or API-provided estimates?
-
 ## Data Schema
 
-- Which cleaned tables exist in DuckDB?
-- Which schema is expected for each table?
-- Which Pydantic models define the expected table columns?
-- What columns are required to build the training dataset?
-- Which column names must stay stable because the model depends on them?
+Descriptions of important datasets throughout the project
+> Note: these are cols after being run throguh `csv_data_pipeline_runner.ipynb`
 
 ### Raw Flight Columns
+| Column            | Type    |
+|-------------------|---------|
+| date              | date    |
+| year              | integer |
+| month             | integer |
+| day_of_month      | integer |
+| day_of_week       | integer |
+| flight_number     | double  |
+| origin            | varchar |
+| origin_city_name  | varchar |
+| dest              | varchar |
+| dest_city_name    | varchar |
+| pred_dep_time     | bigint  |
+| pred_arr_time     | bigint  |
+| pred_elapsed_time | double  |
+| distance          | double  |
+| total_delay       | double  |
 
-- Which raw CSV columns are required by `create_and_clean_flights_table`?
-- What type is each important raw column before cleaning?
-- Which delay columns are combined?
-- Which rows are filtered out before training?
-- Are there raw columns that look useful but were intentionally not used?
 
 ### Raw Airport Columns
 
-- Which raw airport CSV columns are required?
-- How are raw latitude and longitude renamed?
-- How is the IATA code normalized or filtered?
-- Which rows are excluded?
-- What source-specific assumptions does the cleaning code make?
+| Column | Type    |
+|--------|---------|
+| name   | varchar |
+| lat    | double  |
+| long   | double  |
+| code   | varchar |
 
 ### Weather Features
 
-- What weather fields are requested from Open-Meteo?
-- What units does each weather field use?
-- Are the weather values daily summaries, hourly values, or current conditions?
-- How are origin weather feature names prefixed?
-- How are destination weather feature names prefixed?
-- What should happen if a weather field is missing?
+|Column      |Type       |
+|------------|-----------|
+| code       | varchar   |
+| date       | date      |
+| api_url    | varchar   |
+| fetched_at | timestamp |
+| payload    | json      |
+
+|
+|
+ -- >
+ ```
+ payload = {                                                                                    
+   "latitude": "DOUBLE", "longitude": "DOUBLE", "generationtime_ms": "DOUBLE", "utc_offset_seconds": "BIGINT", "timezone": "VARCHAR", "timezone_abbreviation": "VARCHAR", "elevation": "DOUBLE",
+
+     "time": "VARCHAR", "weather_code": "VARCHAR", "temperature_2m_max": "VARCHAR", "temperature_2m_min": "VARCHAR", "apparent_temperature_max": "VARCHAR", "apparent_temperature_min": "VARCHAR",
+     "precipitation_sum": "VARCHAR", "rain_sum": "VARCHAR", "showers_sum": "VARCHAR", "snowfall_sum": "VARCHAR", "cloud_cover_mean": "VARCHAR", "wind_speed_10m_max": "VARCHAR",
+     "wind_gusts_10m_max": "VARCHAR", "wind_direction_10m_dominant": "VARCHAR", "pressure_msl_mean": "VARCHAR"
+   },                                                                                                                                                                                                
+   "daily": {                                                                                                                                                                                        
+     "time": ["VARCHAR"], "weather_code": ["UBIGINT"], "temperature_2m_max": ["DOUBLE"], "temperature_2m_min": ["DOUBLE"], "apparent_temperature_max": ["DOUBLE"],
+     "apparent_temperature_min": ["DOUBLE"], "precipitation_sum": ["DOUBLE"], "rain_sum": ["DOUBLE"], "showers_sum": ["DOUBLE"], "snowfall_sum": ["DOUBLE"], "cloud_cover_mean": ["UBIGINT"],
+     "wind_speed_10m_max": ["DOUBLE"], "wind_gusts_10m_max": ["DOUBLE"], "wind_direction_10m_dominant": ["UBIGINT"], "pressure_msl_mean": ["DOUBLE"]
+}
+```
+
 
 ### Training Dataset
+|Column                               |Type      |
+|-------------------------------------|----------|
+| id                                  |  bigint  |
+| month                               |  integer |
+| flight_num                          |  double  |
+| dest                                |  varchar |
+| pred_arr_time                       |  bigint  |
+| delay                               |  double  |
+| origin_temperature_2m_min           |  double  |
+| origin_precipitation_sum            |  double  |
+| origin_snowfall_sum                 |  double  |
+| origin_wind_gusts_10m_max           |  double  |
+| dest_weather_code                   |  double  |
+| dest_apparent_temperature_max       |  double  |
+| dest_rain_sum                       |  double  |
+| dest_cloud_cover_mean               |  double  |
+| dest_wind_direction_10m_dominant    | double   |
+|  flight_date                        | date     |
+|  day_of_month                       | integer  |
+|  origin                             | varchar  |
+|  dest_city_name                     | varchar  |
+|  pred_elapsed_time                  | double   |
+|  origin_weather_code                | double   |
+|  origin_apparent_temperature_max    | double   |
+|  origin_rain_sum                    | double   |
+|  origin_cloud_cover_mean            | double   |
+|  origin_wind_direction_10m_dominant | double   |
+|  dest_temperature_2m_max            | double   |
+|  dest_apparent_temperature_min      | double   |
+|  dest_showers_sum                   | double   |
+|  dest_wind_speed_10m_max            | double   |
+|  year                               |  integer |
+|  day_of_week                        |  integer |
+|  origin_city_name                   |  varchar |
+|  pred_dep_time                      |  bigint  |
+|  fl_distance                        |  double  |
+|  origin_temperature_2m_max          |  double  |
+|  origin_apparent_temperature_min    |  double  |
+|  origin_showers_sum                 |  double  |
+|  origin_wind_speed_10m_max          |  double  |
+|  origin_pressure_msl_mean           |  double  |
+|  dest_temperature_2m_min            |  double  |
+|  dest_precipitation_sum             |  double  |
+|  dest_snowfall_sum                  |  double  |
+|  dest_wind_gusts_10m_max            |  double  |
+| dest_pressure_msl_mean              |  double  |
 
-- How is the final `model_dataset` table built?
-- Which tables are joined together?
-- What join keys are used?
-- How are flight rows matched to weather rows?
-- How many rows are used for training?
-- Are any rows dropped because of nulls?
-
-## Data Cleaning
-
-- What cleaning steps happen before model training?
-- Which rows are removed and why?
-- Which columns are cast to new types?
-- How are missing delay values handled?
-- How are schema mismatches detected?
-- What data cleaning choices could bias the model?
-
-## Feature Engineering
-
-- Which raw fields become model features?
-- Which features are directly copied from cleaned data?
-- Which features are calculated?
-- Which features are categorical?
-- Which features are numeric?
-- Which features were considered but not included?
-
-### Date and Time Features
-
-- How are `year`, `month`, `day_of_month`, and `day_of_week` created?
-- How are scheduled departure and arrival times represented?
-- How is elapsed time calculated?
-- How are overnight flights handled?
-- Why is `flight_date` treated as a categorical feature in the current pipeline?
-
-### Airport Features
-
-- Which airport-related features are used?
-- Are airport codes used as categorical variables?
-- Are city names used or only kept for response/debugging?
-- Are latitude and longitude used directly by the model?
-- Are coordinates used to calculate flight distance?
-
-### Route Features
-
-- How is flight distance calculated?
-- Is the route represented by origin and destination separately or as a combined route?
-- Are airline or flight number features used?
-- Could route popularity or airport congestion be useful future features?
-
-### Weather Features
-
-- Which weather features are included for origin?
-- Which weather features are included for destination?
-- Are weather features normalized, scaled, or passed through directly?
-- Are interactions like snow plus wind considered?
-- Which weather features seem most useful based on exploration?
+---
 
 ### Delay Labels
 
@@ -171,90 +184,37 @@ Use this file as a guided draft. Answer the questions under each heading, then r
 - Does the target include only carrier/weather/NAS/security/late-aircraft delay, or total arrival delay?
 - How could the label definition change future results?
 
-## Exploratory Data Analysis
+---
 
-- What questions did you ask during EDA?
-- Which figures are generated?
-- Where are the figures saved?
-- What did you learn from the plots?
-- Which findings influenced feature engineering or model choice?
+## Graohed exploration in `backend/src/ml/training/figures/`
+- Correlation: `backend/src/ml/training/figures/correlation_chart.png`
+- Distribution: `backend/src/ml/training/figures/delay_distribution.png`
+- Missing values (none): `backend/src/ml/training/figures/missing_values.png`
 
-### Missing Values
-Missing values have been found to be rare. In the odd/ uncaught case of missing values, the dataset is more than large enoguh (for my intentions/ AWS compute budget) to drop the entire row.
-⚠️ RREMEMBER: explain the output image of no cols dropped
-
-### Class Balance
-
-- What percentage of flights are significant delays?
-- Is the dataset imbalanced?
-- Which dummy baseline performs best?
-- How does class balance affect precision, recall, and F1?
-- Did you use class weights to address imbalance?
-
-### Correlations
-
-- Which numeric features correlate most with delay?
-- Are any correlations surprising?
-- Are correlations strong enough to explain the model alone?
-- Which useful relationships might not appear in simple linear correlation?
-
-### Delay Distribution
-
-- What does the delay distribution look like?
-- Are early arrivals included?
-- Are extreme delays common or rare?
-- Where does the significant-delay threshold sit in the distribution?
-- Does the distribution suggest outlier handling?
-
-## Train Validation Test Split
-
-- How is the data split into training and test sets?
-- What `test_size` and `random_state` are used?
-- Is the split stratified by the delay label?
-- Is there a separate validation set, or does cross-validation provide validation?
-- Could a time-based split be more realistic than a random split?
-- What leakage risks exist when splitting flight data?
+---
 
 ## Baselines
 
-- Which dummy classifiers are tested?
-- What baseline scores are recorded?
-- Which baseline is the main comparison point?
-- Does the random forest beat the baseline on the metric that matters?
-- What would a simple rule-based baseline look like?
+Scikit-learn's `DummyClassifier` was used as a baseline of which findings can be seen graohed in `/backend/src/ml/training/figures/dummy_strats.png`
 
-## Model Selection
+We see `most_frequent` at ~0.97, indicating that the base model successfully predicts the majority class (no significant delay) most often. This is no suprise if you look at the distribution of delays, and the size of the training dataset.
 
-- Why did you choose a random forest classifier?
-- What strengths does random forest have for this dataset?
-- What weaknesses does it have?
-- What preprocessing is needed for numeric and categorical columns?
-- Which other models were considered?
+For V1.1, I atrificually skew the train set to include a greater protion of significantly delayed flights. 
 
-### Random Forest Classifier
-
-- What scikit-learn pipeline is used?
-- How are categorical variables encoded?
-- How are numeric variables handled?
-- What hyperparameters are searched?
-- Why are `class_weight`, `max_depth`, `n_estimators`, and `max_samples` relevant?
-- How expensive is training?
-
-### Alternative Models Considered
-
-- Did you consider logistic regression, gradient boosting, XGBoost/LightGBM, neural networks, or regression models?
-- Why were they not chosen for the current version?
-- What would you try next if model performance is not good enough?
-- Which alternatives would improve explainability, speed, or accuracy?
+---
 
 ## Training Pipeline
 
-- Which script or notebook is the source of truth for training?
-- What command should a developer run to train the model?
-- What inputs must exist before training starts?
-- What outputs are produced?
-- Does training save the model artifact automatically?
-- Where are metrics and plots written?
+Multiple pipelines have been created for each stage of data.
+
+These being: Raw CSV -> DuckDB -> Refined DuckDB -> API Response(s) raw -> API Resposne Cleaned -> Final Training Dataset
+
+### File key
+| File Name | Premier Process | Output Table Name(s)|
+|-------------------------------------------|-----------------|-------------|
+|`backend/src/ml/csv_data_pipeline_funcs.py` & `backend/src/ml/csv_data_pipeline_runner.ipynb`| Process raw CSVs to usable, efficiently organised, data | `flight_data` & `airport_data`|
+| | | | |
+| | | | |
 
 ## Hyperparameter Tuning
 
@@ -289,30 +249,6 @@ Missing values have been found to be rare. In the odd/ uncaught case of missing 
 - Is a probability threshold other than `0.5` more useful?
 - What work is needed before claiming the probability is reliable?
 
-### Confusion Matrix
-
-- What are the counts for true positives, false positives, true negatives, and false negatives?
-- Which error type is more common?
-- Which error type is more harmful for this use case?
-- Does the confusion matrix change with a different threshold?
-
-### Feature Importance
-
-- Which features does the random forest rely on most?
-- Are importances stable across training runs?
-- Are categorical airport features dominating the model?
-- Do important features make domain sense?
-- Would permutation importance or SHAP give a better explanation?
-
-## Model Artifacts
-
-- What file stores the trained model?
-- Does the file include preprocessing and classifier together?
-- How is the model loaded by the backend?
-- How should the artifact be regenerated?
-- Should model artifacts be committed or recreated locally?
-- How will you avoid training/inference feature drift?
-
 ## Inference Pipeline
 
 - What data does the backend collect at prediction time?
@@ -340,14 +276,6 @@ Missing values have been found to be rare. In the odd/ uncaught case of missing 
 - Are model training and inference tested separately?
 - What tests would catch a feature-name mismatch?
 - What manual checks should be done after retraining?
-
-## Monitoring
-
-- If deployed, what should be monitored?
-- Should you track request errors, latency, API failures, and model exceptions?
-- Should you log prediction distributions over time?
-- How would you detect data drift or degraded model quality?
-- What metrics would matter for a portfolio/demo deployment?
 
 ## Known Limitations
 
