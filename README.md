@@ -72,7 +72,6 @@ And so, I thought it would be an interesting process to try and use (nearly) fre
 ### Frontend
 - Open a new terminal
 - `cd frontend`
-- `npm init -y`
 - `npm i`
 - `npm run dev`
 
