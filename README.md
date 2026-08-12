@@ -1,190 +1,142 @@
-# Welcome to My Flight Delay Predictor
+# Flight Delay Predictor
 
-Predict whether a US flight  is likely to be notably delayed
-historical flight and weather data.
+This project predicts whether a domestic U.S. flight is likely to have a significant delay. It combines 2024 historical flight data with daily weather data, a local DuckDB database, live flight schedule data, and a scikit-learn random forest classifier.
 
-[SCREENSHOT/ GIF OF APPLICATION, UPLOAD THIS LATER]
+It is a local portfolio and learning project. Its purpose is to practise typed full-stack development, data pipelines, API integration, testing, and machine learning. It is not designed as a production service.
 
-## Overview
-Certain flights have greater chances of being delayed. This is due to factors such as airline, staffing, weather time of year, etc...
+## Documentation
 
-And so, I thought it would be an interesting process to try and use (nearly) free data that is possible to obtain on the internet in order to predict real flights with a hometrained ML model.
+- [Run the project locally](#running-locally)
+- [API reference](docs/api.md)
+- [System architecture](docs/architecture.md)
+- [ML pipeline and evaluation](docs/ml.md)
+- [Documentation recommendations](docs/recommendations.md)
 
----
+## What It Does
+
+The frontend accepts:
+
+- A flight date
+- A scheduled departure time
+- A three-letter departure airport IATA code
+- A three-letter destination airport IATA code
+
+The backend then checks the local airport data, requests the scheduled flight from AviationStack, requests daily weather data from Open-Meteo for both airports, calculates the route distance, and sends the resulting features to the trained model. The response contains a significant-delay prediction, its model probability when available, and selected flight details.
+
+The model defines a significant delay as at least 25 minutes. See [the ML documentation](docs/ml.md#target-definition) for the label definition and evaluation context.
 
 ## Features
-- Flight delay prediction through random forest classification with estimated confidence/probability
-- Weather integration through Open-Meteo's API. Link [here](https://open-meteo.com)
-- Interactive flight input
-- Flight data integration using AviationStack API. Link [here](https://docs.apilayer.com/aviationstack/docs/api-documentation)
 
----
+- Random forest classification with a significant-delay probability
+- Live scheduled-flight lookup through [AviationStack](https://docs.apilayer.com/aviationstack/docs/api-documentation)
+- Daily airport weather lookup through [Open-Meteo](https://open-meteo.com)
+- Local DuckDB storage for airport, flight, weather, and training data
+- React and TypeScript frontend with a single prediction workflow
 
-## Tech Stack With Links
+## Technology
 
-**Frontend**
-- [React](https://react.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Vite](https://vite.dev/)
-
-**Backend**
-- [Python](https://www.python.org/)
-- [FastAPI](https://fastapi.tiangolo.com/)
-
-**ML / Data**
-- [pandas](https://pandas.pydata.org/docs/)
-- [scikit-learn](https://scikit-learn.org/stable/)
-- [DuckDB](https://duckdb.org/docs/current/)
-    - Highly recommended
-- [Open-Meteo API](https://open-meteo.com)
-- [AviationStack API](https://docs.apilayer.com/aviationstack/docs/api-documentation)
-- [Internal flights in the USA in 2024](https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data)
-- [Matplotlib](https://matplotlib.org/3.5.3/index.html)
-
----
-
-## Machine Learning
-
-### Rough flow:
-- Hard input vars: airport_data, 2024_flight_data
-    - Process through data pipelines
-- Query to weather API
-- Put response through pipeline
-- Explore data
-- Train model
-
->For ML docs look [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/ml.md)
-
----
+- Frontend: [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vite.dev/), and [Tailwind CSS](https://tailwindcss.com/)
+- Backend: [Python](https://www.python.org/), [FastAPI](https://fastapi.tiangolo.com/), and [uvicorn](https://www.uvicorn.org/)
+- Data and ML: [DuckDB](https://duckdb.org/), [pandas](https://pandas.pydata.org/docs/), [scikit-learn](https://scikit-learn.org/stable/), and [Matplotlib](https://matplotlib.org/)
 
 ## Running Locally
 
-### Pre-reqs:
-- Ensure Python is installed on your computer
-- Ensure uv is installed on your computer
+### Prerequisites
 
-### Backend Steps:
-- Download my ML Model from Google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
-- Open a new terminal and cd to the project root
-- Run the command `mv [PATH-TO-DOWNLOADED-MODEL].joblib backend/src/ml/model/model.joblib`
-- `cd /backend`
-- `uv run uvicorn src.main:app --reload`
+- Python 3.13 or later
+- [uv](https://docs.astral.sh/uv/)
+- Node.js and npm
+- API keys for AviationStack and Open-Meteo
 
-### Frontend
-- Open a new terminal
-- `cd frontend`
-- `npm init -y`
-- `npm i`
-- `npm run dev`
+### 1. Prepare the backend
 
-### .env Configuration
-See @`backend/.env.example` and @`frontend/.env.example` for vars
-- Place your frontend `.env` at `/frontend/.env`
-- Place your backend `.env` at `/backend/.env`
+From the project root:
 
----
-
-## API
-Endpoint name: `POST /predict`
-
-Note, being the only backend API communication this is already configured in the .env.example, so simply leave it there/ move the copy to your `frontend/.env`
-
-**Request shape:**
-``` text
-{
-  date: string;
-  scheduledDepartureTime: string;
-  depIataCode: string;
-  destIataCode: string;
-}
+```bash
+cp backend/.env.example backend/.env
+cd backend
+uv sync
 ```
 
-**Response shape:**
+Set the values in `backend/.env` as described in [Environment Variables](docs/api.md#environment-variables).
 
-``` text
-{
-    ok:boolean;
-    code: int | null;
-    message: string;
-    data:{
-        is_significant_delay: boolean;
-        significant_delay_probability: number | null;
+The backend expects these local artifacts, which are excluded from git:
 
-        coordinates: {
-        origin_lat: number;
-        origin_long: number;
-        dest_lat: number;
-        dest_long: number;
-        },
-        distance: {
-        fl_distance:number;
-        }
-        aviationApiData: {
-        origin:string;
-        origin_city_name: string;
-        origin_lat: number;
-        origin_long: number;
+- `backend/data/duck_database.duckdb`, containing at least the `airport_data` and `weather_req_table` tables for predictions
+- `backend/src/ml/model/model.joblib`, the trained model used by `/predict`
 
-        dest: string;
-        dest_city_name: string;
-        dest_lat: number;
-        dest_long: number;
+The [ML documentation](docs/ml.md#local-artifacts) explains how the data pipeline and model fit together. A pre-trained model is available from [Google Drive](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing); place it at `backend/src/ml/model/model.joblib`.
 
-        flight_date: string;
-        day_of_month: number;
-        day_of_week: number;
-        pred_dep_time: number;
-        pred_arr_time: number;
-        pred_elapsed_time: number;
-        year: number;
-        month: number;
-        }
-    }
-}
+Start the API from the `backend` directory:
+
+```bash
+uv run uvicorn src.main:app --reload
 ```
->See API documentation [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/api.md)
+
+The backend runs at `http://localhost:8000`.
+
+### 2. Prepare the frontend
+
+In a second terminal, from the project root:
+
+```bash
+cp frontend/.env.example frontend/.env
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite development server runs at `http://localhost:5173` by default. The frontend variables are documented in [Environment Variables](docs/api.md#environment-variables).
+
+### 3. Try the API
+
+Check that the backend is running:
+
+```bash
+curl http://localhost:8000/health
+```
+
+For the request contract, response fields, and failure behaviour, see the [API reference](docs/api.md).
+
 ## Project Structure
+
 ```text
 .
-|-- backend/                 # Python API, ML pipeline, models, services, and tests
-|   |-- pyproject.toml       # Backend dependencies and project config
-|   |-- uv.lock              # Locked backend dependency versions
-|   |-- .env.example         # Example backend environment variables
-|   |-- services/            # Service layer for prediction workflows
+|-- backend/
+|   |-- pyproject.toml       # Backend dependencies and project configuration
+|   |-- .env.example         # Backend environment variable template
+|   |-- services/            # Prediction workflow
 |   |-- src/
-|   |   |-- main.py          # Backend application entry point
-|   |   |-- api/             # External API integrations
-|   |   |-- ml/              # Data pipelines, training code, notebooks, and model helpers
-|   |   `-- models/          # Shared data models
-|   `-- tests/               # Backend unit and integration tests
-|-- frontend/                # Vite, React, and TypeScript frontend
+|   |   |-- main.py          # FastAPI application and routes
+|   |   |-- api/             # External API clients
+|   |   |-- ml/              # Data pipelines and training code
+|   |   |-- models/          # Pydantic contracts
+|   |   `-- utils.py         # Shared backend helpers
+|   `-- tests/               # Backend tests
+|-- frontend/
 |   |-- package.json         # Frontend scripts and dependencies
-|   |-- vite.config.ts       # Vite configuration
-|   |-- .env.example         # Example frontend environment variables
+|   |-- .env.example         # Frontend environment variable template
 |   `-- src/
 |       |-- components/      # Shared UI components
-|       |-- features/        # Feature-specific frontend modules
-|       |-- lib/             # Frontend API/client helpers
-|       `-- types/           # Shared TypeScript types
-|-- docs/                    # Extended project documentation
+|       |-- features/        # Feature-specific UI modules
+|       |-- lib/             # Frontend API client
+|       `-- types/           # TypeScript API contracts
+|-- docs/
 |   |-- api.md
 |   |-- architecture.md
-|   `-- ml.md
-|-- README.md
-`-- newREADMEtemplate.md
+|   |-- ml.md
+|   `-- recommendations.md
+`-- README.md
 ```
 
-Local/generated files are omitted from this tree, including `.env` files, `backend/data/`, `backend/logs/`, virtual environments, `node_modules/`, frontend build output, caches, and trained model artifacts.
+Generated and local-only files are omitted from this tree, including `.env` files, `backend/data/`, `backend/logs/`, virtual environments, `node_modules/`, build output, caches, and the trained model artifact.
 
----
+## Scope and Limitations
 
-## Further Documentation Links
+The project is intended for local use. It does not currently include user authentication, application-level rate limiting, deployment or hosting configuration, Docker configuration, or production operations. CORS is configured only for the local Vite origin. These boundaries are intentional for the current project goal; see [Architecture](docs/architecture.md#scope-and-boundaries).
 
-- Architecture [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/architecture.md)
-- ML pipeline [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/ml.md)
-- API link [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/api.md)
+The live prediction path can be slow because it depends on external API response times. AviationStack may not provide every flight or every future date. The model is also limited by the quality and depth of its historical and daily weather features. See [Known Limitations](docs/architecture.md#known-limitations) and [ML Limitations](docs/ml.md#limitations).
 
----
+## Future Work
 
-## Future Work For This Project
-Find the future plans/ work/ todos for this project [here](https://github.com/magnusrwn/flight_proj/issues) 
+Track project-level ideas in the [GitHub issues](https://github.com/magnusrwn/flight_proj/issues).
