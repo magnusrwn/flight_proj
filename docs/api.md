@@ -231,7 +231,7 @@ Backend logging is configured by [`configure_logging`](../backend/src/logger_con
 
 Logs are also written to stdout. File logs use a rotating handler with a 5 MB limit and 3 backups. The `backend/logs` directory is excluded from git.
 
-Current request logging may include request params, headers, bodies, and provider response details. Because provider API keys are passed as request params, local logs should be treated as sensitive until request-log redaction is implemented.
+⚠️⚠️ Current request logging may include request params, headers, bodies, and provider response details. Because provider API keys are passed as request params, local logs should be treated as sensitive until request-log redaction is implemented ⚠️⚠️
 
 ## Testing
 
