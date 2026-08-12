@@ -1,20 +1,19 @@
 # Welcome to My Flight Delay Predictor
 
-Predict whether a US flight  is likely to be notably delayed
-historical flight and weather data.
+Predict whether a US flight is likely to be notably delayed using historical flight and weather data.
 
 [SCREENSHOT/ GIF OF APPLICATION, UPLOAD THIS LATER]
 
 ## Overview
-Certain flights have greater chances of being delayed. This is due to factors such as airline, staffing, weather time of year, etc...
+Certain flights have greater chances of being delayed. This is due to factors such as airline, staffing, weather, time of year, etc...
 
-And so, I thought it would be an interesting process to try and use (nearly) free data that is possible to obtain on the internet in order to predict real flights with a hometrained ML model.
+And so, I thought it would be an interesting process to try and use (nearly) free data that is possible to obtain on the internet in order to predict real flights with a home‑trained ML model.
 
 ---
 
 ## Features
 - Flight delay prediction through random forest classification with estimated confidence/probability
-- Weather integration through Open-Meteo's API. Link [here](https://open-meteo.com)
+- Weather integration through Open‑Meteo's API. Link [here](https://open-meteo.com)
 - Interactive flight input
 - Flight data integration using AviationStack API. Link [here](https://docs.apilayer.com/aviationstack/docs/api-documentation)
 
@@ -36,7 +35,7 @@ And so, I thought it would be an interesting process to try and use (nearly) fre
 - [scikit-learn](https://scikit-learn.org/stable/)
 - [DuckDB](https://duckdb.org/docs/current/)
     - Highly recommended
-- [Open-Meteo API](https://open-meteo.com)
+- [Open‑Meteo API](https://open-meteo.com)
 - [AviationStack API](https://docs.apilayer.com/aviationstack/docs/api-documentation)
 - [Internal flights in the USA in 2024](https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data)
 - [Matplotlib](https://matplotlib.org/3.5.3/index.html)
@@ -59,15 +58,15 @@ And so, I thought it would be an interesting process to try and use (nearly) fre
 
 ## Running Locally
 
-### Pre-reqs:
+### Pre‑reqs:
 - Ensure Python is installed on your computer
 - Ensure uv is installed on your computer
 
 ### Backend Steps:
-- Download my ML Model from Google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
+- Download my ML Model from Google Drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
 - Open a new terminal and cd to the project root
 - Run the command `mv [PATH-TO-DOWNLOADED-MODEL].joblib backend/src/ml/model/model.joblib`
-- `cd /backend`
+- `cd backend`
 - `uv run uvicorn src.main:app --reload`
 
 ### Frontend
@@ -78,7 +77,7 @@ And so, I thought it would be an interesting process to try and use (nearly) fre
 - `npm run dev`
 
 ### .env Configuration
-See @`backend/.env.example` and @`frontend/.env.example` for vars
+See `backend/.env.example` and `frontend/.env.example` for vars
 - Place your frontend `.env` at `/frontend/.env`
 - Place your backend `.env` at `/backend/.env`
 
@@ -174,7 +173,7 @@ Note, being the only backend API communication this is already configured in the
 `-- newREADMEtemplate.md
 ```
 
-Local/generated files are omitted from this tree, including `.env` files, `backend/data/`, `backend/logs/`, virtual environments, `node_modules/`, frontend build output, caches, and trained model artifacts.
+Local/generated files are omitted from this tree, including `.env` files, `backend/data/`, `backend/logs/`, virtual environments, `node_modules/`, frontend build output, caches, and trained model arti[...] 
 
 ---
 
