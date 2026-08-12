@@ -1,213 +1,252 @@
-# API
-
-Use this file as a guided draft. Answer the questions under each heading, then replace the prompts with final API documentation. For endpoint sections, aim to include exact request/response JSON examples once the answers are known.
-
 ## Overview
+BRIEF NOTE ON API
 
-- What does this API allow a client to do?
-- Which clients currently use it?
-- Is this API public, local-only, or intended for a portfolio/demo?
-- What backend framework serves the API?
-- What are the current endpoints?
+---
 
-## Base URL
 
-- What is the local development base URL?
-- What base URL should the frontend use by default?
-- Is there a deployed base URL?
-- How should the base URL be configured in different environments?
+### TS '/predict' Request Contract
+``` 
+export type FlightPredRequest = {
+  date: string;
+  scheduledDepartureTime: string;
+  depIataCode: string;
+  destIataCode: string;
+};
+```
+### TS '/predict' Response Contract
+Note, this is the 'payload' of the response item. The full response matches the base model 'FuncResponse'
+```
+export type FlightPredResponse = {
+  is_significant_delay: boolean;
+  significant_delay_probability: number | null;
+
+  coordinates: {
+    origin_lat: number;
+    origin_long: number;
+    dest_lat: number;
+    dest_long: number;
+  },
+  distance: {
+    fl_distance:number;
+  }
+  aviationApiData: {
+    origin:string;
+    origin_city_name: string;
+    origin_lat: number;
+    origin_long: number;
+    
+    dest: string;
+    dest_city_name: string;
+    dest_lat: number;
+    dest_long: number;
+
+    flight_date: string;
+    day_of_month: number;
+    day_of_week: number;
+    pred_dep_time: number;
+    pred_arr_time: number;
+    pred_elapsed_time: number;
+    year: number;
+    month: number;
+  }
+};
+```
+---
 
 ## Environment Variables
+All environment variables are required. To see setup, go [here]() and Ctrl/Cmd + f: '.env Configuration'
 
-- Which backend environment variables are required?
-- Which frontend environment variables control API calls?
-- What are the default values if frontend env vars are missing?
-- Where should `.env` files live?
-- Which variables are secrets and must not be committed?
+---
 
 ## Authentication
 
-- Does your own API require authentication?
-- Do any endpoints require user identity?
-- Which external APIs require API keys?
-- Where are external API keys loaded from?
-- What authentication or rate-limit concerns would matter in production?
+This is a small scale portfolio project, and thus intended to be run, at this stage, on local host only as being a student I would not love to pay for hosting.
 
-## Request Format
+So, there is zero authentication for the backend API, apart from CORS which only allows req's from localhost, if that counts at all.
 
-- What content type should clients send?
-- Are all requests JSON?
-- What date and time formats are expected?
-- Are IATA airport codes case-sensitive?
-- Are unknown or extra request fields accepted?
-- What validation does Pydantic enforce?
-
-## Response Format
-
-- What content type does the API return?
-- Does a successful prediction return the response object directly or inside an envelope?
-- Which fields are booleans, numbers, strings, objects, or nullable?
-- Which date fields are serialized as strings?
-- Which response fields come from AviationStack, DuckDB, distance calculation, and the ML model?
-
-## Response Envelope
-
-- Does the public API return the internal `FuncResponse` envelope?
-- Where is `FuncResponse` used internally?
-- Should future endpoints return a consistent envelope such as `{ ok, code, message, data }`?
-- If the README mentions an envelope, does it match the actual FastAPI response?
-- What response shape should clients rely on today?
-
-## Error Handling
-
-- What shape does FastAPI return for `HTTPException` errors?
-- What is included in the `detail` field?
-- Which failures return `400`, `404`, `422`, `500`, or `502`?
-- How are service-layer errors converted into HTTP errors?
-- How does the frontend currently display or handle failed requests?
-- Are external API errors exposed directly or normalized?
-
-## Validation Rules
-
-- Which fields are required in `FlightPredRequest`?
-- What type and format must `date` use?
-- What type and format must `scheduledDepartureTime` use?
-- What length must `depIataCode` and `destIataCode` have?
-- Are extra fields forbidden?
-- Are airport codes checked against local DuckDB data?
-- Are coordinates validated before distance calculation?
-
-## Endpoints
-
-- Which endpoints exist today?
-- Which endpoints are intended for users versus health checks or internal diagnostics?
-- Are there endpoints that are planned but not implemented?
-- Which endpoint does the frontend call?
-
-### GET /health
-
-#### Purpose
-
-- What is this endpoint used for?
-- Should it be used by developers, deployment health checks, or both?
-- Does it verify only that FastAPI is running, or also dependencies like DuckDB, model artifact, and external APIs?
-
-#### Success Response
-
-- What JSON is returned when the API is healthy?
-- What status code is returned?
-- Should this response include version or dependency status in the future?
-
-### POST /predict
-
-#### Purpose
-
-- What user action triggers this endpoint?
-- What prediction does it produce?
-- What external dependencies are involved?
-- What local artifacts must exist for it to work?
-
-#### Request Body
-
-- What is the exact JSON schema?
-- Which fields are required?
-- What example request should be shown?
-- What are valid examples of `date` and `scheduledDepartureTime`?
-- Should airport codes be documented as IATA codes?
-- Should clients uppercase airport codes before sending?
-
-#### Success Response
-
-- What is the exact JSON schema for a successful response?
-- What does `is_significant_delay` mean?
-- What does `significant_delay_probability` represent?
-- When can `significant_delay_probability` be `null`?
-- What is included in `coordinates`?
-- What is included in `distance`?
-- What is included in `aviationApiData`?
-- What example response should be shown?
-
-#### Error Responses
-
-- What happens when the request body fails Pydantic validation?
-- What happens when the departure airport is not in `weather_req_table`?
-- What happens when AviationStack returns no usable flight data?
-- What happens when no AviationStack flight matches the requested route and time?
-- What happens when Open-Meteo fails or returns incomplete weather data?
-- What happens when DuckDB tables or the model artifact are missing?
-- What example error responses should be shown?
-
-#### Example Request
-
-- What is a realistic request payload that works locally?
-- Does the example use a real flight date, departure time, origin, and destination?
-- Does the example avoid exposing API keys or private data?
-
-#### Example Response
-
-- What is a realistic successful response?
-- Are numbers and dates formatted exactly as FastAPI returns them?
-- Does the example make clear that probabilities are between `0` and `1`?
-- Should the example include both the prediction and supporting flight details?
+---
 
 ## External API Dependencies
 
-- Which external APIs are called during prediction?
-- Which external APIs are called only during offline data preparation?
-- What API keys are needed?
-- What rate limits, costs, or availability risks exist?
-- What happens if external API response shapes change?
+APIs included in API service:
+- Open-Meteo weather API
+- AviationStack API
+
+AviationStack API gathers the information on the flight, and its schedule. This means that rows can be populated to match the data shape of the flight data in `model_dataset`.
+
+Open-Meteo is used again to father the weather data on the airport handed in. Matching is minimal, as the API is the same method used to gather the data in `model_dataset`.
 
 ### AviationStack
 
-- Which endpoint is called?
-- What parameters are sent?
-- What fields are read from the response?
-- How is a matching flight selected?
-- What assumptions are made about scheduled departure and arrival time fields?
-- What errors should be documented for missing API key, empty response, or changed payload shape?
+**Request AviationStack Service Request:**
+```text
+Endpoint: "https://api.aviationstack.com/v1/flightsFuture"
+params: {
+                        // Notes on params:
+    access_key: str     // Your API access key
+    date: str           // In format YYYY-MM-DD
+    iataCode: str       // Must be of length 3, and must be uppercase
+    type: str           // Must be "arrival" or departure"
+}
+```
+Note that the notes reflect validation in the project
+
+**Sample AviationStack Service Response:**
+```
+{
+  "pagination": {
+    "limit": 100,
+    "offset": 0,
+    "count": 100,
+    "total": 1669022
+  },
+  "data": [
+    [
+      {
+        "weekday": "7",
+        "departure": {
+          "iataCode": "BER",
+          "icaoCode": "EDDB",
+          "terminal": "1",
+          "gate": "B17",
+          "scheduledTime": "06:15"
+        },
+        "arrival": {
+          "iataCode": "CDG",
+          "icaoCode": "LFPG",
+          "terminal": "2F",
+          "gate": "",
+          "scheduledTime": "08:05"
+        },
+        "aircraft": {
+          "modelCode": "BCS3",
+          "modelText": "Airbus A220-300"
+        },
+        "airline": {
+          "name": "",
+          "iataCode": "AM",
+          "icaoCode": "AM"
+        },
+        "flight": {
+          "number": "5748",
+          "iataNumber": "AM5748",
+          "icaoNumber": "AM5748"
+        },
+        "codeshared": {
+          "airline": {
+            "name": "Air France",
+            "iataCode": "AF",
+            "icaoCode": "AFR"
+          },
+          "flight": {
+            "number": "1135",
+            "iataNumber": "AF1135",
+            "icaoNumber": "AFR1135"
+          }
+        }
+      }
+    ]
+  ]
+}
+```
 
 ### Open-Meteo
 
-- Which endpoint is called at request time?
-- Which endpoint is used for historical training backfill?
-- What parameters are sent?
-- Which daily weather fields are requested?
-- Are requests made for both origin and destination?
-- What errors should be documented for missing API key, invalid payload, or failed fetch?
+**Endpoint:** `https://customer-api.open-meteo.com/v1/forecast`
+Note that 'customer-' is the endpoint version for customers only (quel suprise)
 
-## Frontend API Client
+**Sample Open-Meteo Service Request:**
+``` text
+method: "GET"
+url: "https://customer-api.open-meteo.com/v1/forecast"
+params: {
+    "apikey": api_key,
+    "latitude": lat,
+    "longitude": lon,
+    "start_date": date.isoformat(),
+    "end_date": date.isoformat(),
+    "daily":
+        "weather_code, temperature_2m_max, temperature_2m_min, apparent_temperature_max,
+        apparent_temperature_min, precipitation_sum, rain_sum, showers_sum, snowfall_sum,
+        cloud_cover_mean, wind_speed_10m_max, wind_gusts_10m_max,
+        wind_direction_10m_dominant, pressure_msl_mean"
+    "timezone": "auto",
+}
+```
 
-- Where is the frontend API client implemented?
-- Which function calls `POST /predict`?
-- Which TypeScript types describe request and response data?
-- How does the frontend configure `VITE_API_BASE_URL` and `VITE_PREDICTION_ENDPOINT`?
-- How are non-OK HTTP responses converted into frontend errors?
-- Does the frontend need to handle backend validation errors differently?
+**Sample Open-Meteo Service Resposne**
+``` text
+{
+  "latitude": "number",
+  "longitude": "number",
+  "generationtime_ms": "number",
+  "utc_offset_seconds": "number",
+  "timezone": "string",
+  "timezone_abbreviation": "string",
+  "elevation": "number",
+  "daily_units": {
+    "time": "string",
+    "weather_code": "string",
+    "temperature_2m_max": "string",
+    "temperature_2m_min": "string",
+    "apparent_temperature_max": "string",
+    "apparent_temperature_min": "string",
+    "precipitation_sum": "string",
+    "rain_sum": "string",
+    "showers_sum": "string",
+    "snowfall_sum": "string",
+    "cloud_cover_mean": "string",
+    "wind_speed_10m_max": "string",
+    "wind_gusts_10m_max": "string",
+    "wind_direction_10m_dominant": "string",
+    "pressure_msl_mean": "string"
+  },
+  "daily": {
+    "time": ["string"],
+    "weather_code": ["number"],
+    "temperature_2m_max": ["number"],
+    "temperature_2m_min": ["number"],
+    "apparent_temperature_max": ["number"],
+    "apparent_temperature_min": ["number"],
+    "precipitation_sum": ["number"],
+    "rain_sum": ["number"],
+    "showers_sum": ["number"],
+    "snowfall_sum": ["number"],
+    "cloud_cover_mean": ["number"],
+    "wind_speed_10m_max": ["number"],
+    "wind_gusts_10m_max": ["number"],
+    "wind_direction_10m_dominant": ["number"],
+    "pressure_msl_mean": ["number"]
+  }
+}
+```
+
+---
 
 ## Testing
 
-- Which backend tests cover API models, service behavior, and external API wrappers?
-- Is `GET /health` tested?
-- Is `POST /predict` tested with success and failure cases?
-- Are external APIs mocked in tests?
-- Are frontend API client tests needed?
-- What manual curl or HTTPie commands should be included for local verification?
+Individual relevant functions are tested in `backend/tests`
 
-## Troubleshooting
+Main test files regaurding API: `test_weather_api.py`, `test_utils.py`, `test_flight_prediction_service.py`
 
-- What should a developer check if the frontend cannot reach the backend?
-- What should they check if CORS fails?
-- What should they check if `POST /predict` returns `422`?
-- What should they check if the response is `404`?
-- What should they check if the response is `500` or `502`?
-- How can they confirm API keys, DuckDB tables, and model artifacts are present?
+---
+
+## Error handeling
+
+**Process Backend:**
+- Service function runs
+- 'ok' set to 'False'
+- Errors are collected and pessed up with 'FuncResponse' with codes and messages persisting over layers
+- Sent to the frontend
+
+**Process Frontend**
+- Recieves response
+- Checks 'response.ok'
+- If not, expore the error message, code, and data
+- Print message, and explain error to user
+
+---
 
 ## Future API Work
 
-- Should the API add versioning, such as `/v1/predict`?
-- Should errors use a documented response schema?
-- Should there be endpoints for airport search, supported routes, model metadata, or prediction history?
-- Should the API cache external API responses?
-- Should authentication or rate limiting be added before deployment?
-- Should the frontend and backend share generated types from OpenAPI?
+Any improvements/ todos will be stored [here](https://github.com/magnusrwn/flight_proj/issues) in the issues page.
