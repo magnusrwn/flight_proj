@@ -1,254 +1,213 @@
+# Machine Learning
+
 ## Overview
-- This model takes in the weather and flight data, and outputs a prediction on the flight being significantly delayed (>25min), or not.
-- The Model is used within the `flight_prediction_sercive.py` file which holds the main function/ logic for the endpoint `/predict`
-- The model is downloadable in the g-drive link, located [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
-- To see input, see `MLModelInput` in file `backend/src/models/base_models.py`
 
----
+The model predicts whether a flight will have a significant delay. It uses historical flight data, route and schedule features, and daily weather features for the origin and destination airports.
 
-## Model setup (if you want to train it -- not reccomended):
-- Open a new terminal and `cd` to `/backend`, if not already there
-- Install `uv` if you do not have it alrady
-- Run the command `uv sync`
-- Ensure your .env is setup (see '.env Configuration' [here](https://github.com/magnusrwn/flight_proj/blob/main/README.md) on how to do that)
-- Run pipeline file(s):
-    - CSV pipeline runner(1st): `backend/src/ml/csv_data_pipeline_funcs.py`
-    - **Note:**: For the following 2 steps: I ran these on EC2 with tmux so I did not have to wait for the API responses/ training. Do as you whish.
-    - Weather API runner (2nd): `backend/src/ml/weather_api_data_runner.py`
-    - Run `backend/src/ml/training/train.ipynb` to replicate my process exactly or `backend/src/ml/training/train_optimised.py` to train the optimised model
+The trained model is loaded by [`predict_delay_from_model`](../backend/services/flight_prediction_sercive.py#L362) during `POST /predict`. The input contract is represented by [`MLModelInput`](../backend/src/models/base_models.py#L114). A pre-trained model is available from [Google Drive](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing). Known model lineage is recorded in [Model Metadata](model-metadata.md).
 
+## Target Definition
 
-### **or**
-Just download it from google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing). Then place it in `backend/src/ml/model/` keeping its name as `model.joblib`
+The CSV pipeline creates `total_delay` by adding:
 
----
+- `carrier_delay`
+- `weather_delay`
+- `nas_delay`
+- `security_delay`
+- `late_aircraft_delay`
 
-## Problem Definition
-For predicting an exact delay, regression would usually be the prefered way. However, that being said, after training and tring to tune regressive random forests I discorvered it's quite hard to get notably better than taking hte average of the training data.
+The model dataset exposes this value as `delay`. Training creates the binary target with:
 
-Thus, I thoguht that making hte delay a binary would be beneficial for the training results, allowing for a higher probability of actual utility. This change can be seen clearly in `/backend/src/ml/train/train.ipynb`.
-
-The model preformed better than taking the avg when the Y was turned into a binary and the model switched to a classifier however, still has room for improvement.
-
----
-
-## Data Sources
-**APIs Used:**
-- [Open-Meteo API](https://open-meteo.com) for all weather data. *Rate limits
-- [Aviation Stack API](https://docs.apilayer.com/aviationstack/docs/api-documentation) for future flight schedule information. * Strong rate limits
-
-**Datasets Used**
-- Kaggle [2024 USA flighs](https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data) convering each flight in the USA during the year 2024.
-- [Americaon airports dataset](https://data.humdata.org/dataset/ourairports-usa) from the HDX (UN data project) showing each airport in the USA.
-
----
-
-## Data Schema
-
-Descriptions of important datasets throughout the project
-> Note: these are cols after being run throguh `csv_data_pipeline_runner.ipynb`
-
-### Raw Flight Columns
-| Column            | Type    |
-|-------------------|---------|
-| date              | date    |
-| year              | integer |
-| month             | integer |
-| day_of_month      | integer |
-| day_of_week       | integer |
-| flight_number     | double  |
-| origin            | varchar |
-| origin_city_name  | varchar |
-| dest              | varchar |
-| dest_city_name    | varchar |
-| pred_dep_time     | bigint  |
-| pred_arr_time     | bigint  |
-| pred_elapsed_time | double  |
-| distance          | double  |
-| total_delay       | double  |
-
-
-### Raw Airport Columns
-
-| Column | Type    |
-|--------|---------|
-| name   | varchar |
-| lat    | double  |
-| long   | double  |
-| code   | varchar |
-
-### Weather Features
-
-|Column      |Type       |
-|------------|-----------|
-| code       | varchar   |
-| date       | date      |
-| api_url    | varchar   |
-| fetched_at | timestamp |
-| payload    | json      |
-
-|
-|
- -- >
- ```
- payload = {                                                                                    
-   "latitude": "DOUBLE", "longitude": "DOUBLE", "generationtime_ms": "DOUBLE", "utc_offset_seconds": "BIGINT", "timezone": "VARCHAR", "timezone_abbreviation": "VARCHAR", "elevation": "DOUBLE",
-
-     "time": "VARCHAR", "weather_code": "VARCHAR", "temperature_2m_max": "VARCHAR", "temperature_2m_min": "VARCHAR", "apparent_temperature_max": "VARCHAR", "apparent_temperature_min": "VARCHAR",
-     "precipitation_sum": "VARCHAR", "rain_sum": "VARCHAR", "showers_sum": "VARCHAR", "snowfall_sum": "VARCHAR", "cloud_cover_mean": "VARCHAR", "wind_speed_10m_max": "VARCHAR",
-     "wind_gusts_10m_max": "VARCHAR", "wind_direction_10m_dominant": "VARCHAR", "pressure_msl_mean": "VARCHAR"
-   },                                                                                                                                                                                                
-   "daily": {                                                                                                                                                                                        
-     "time": ["VARCHAR"], "weather_code": ["UBIGINT"], "temperature_2m_max": ["DOUBLE"], "temperature_2m_min": ["DOUBLE"], "apparent_temperature_max": ["DOUBLE"],
-     "apparent_temperature_min": ["DOUBLE"], "precipitation_sum": ["DOUBLE"], "rain_sum": ["DOUBLE"], "showers_sum": ["DOUBLE"], "snowfall_sum": ["DOUBLE"], "cloud_cover_mean": ["UBIGINT"],
-     "wind_speed_10m_max": ["DOUBLE"], "wind_gusts_10m_max": ["DOUBLE"], "wind_direction_10m_dominant": ["UBIGINT"], "pressure_msl_mean": ["DOUBLE"]
-}
+```python
+y = (data_df["delay"] >= 25).astype(int)
 ```
 
+Therefore, class `1` means a delay of at least 25 minutes and class `0` means a delay below 25 minutes. This is a classification target, not an estimate of the exact number of delay minutes.
 
-### Training Dataset
-|Column                               |Type      |
-|-------------------------------------|----------|
-| id                                  |  bigint  |
-| month                               |  integer |
-| flight_num                          |  double  |
-| dest                                |  varchar |
-| pred_arr_time                       |  bigint  |
-| delay                               |  double  |
-| origin_temperature_2m_min           |  double  |
-| origin_precipitation_sum            |  double  |
-| origin_snowfall_sum                 |  double  |
-| origin_wind_gusts_10m_max           |  double  |
-| dest_weather_code                   |  double  |
-| dest_apparent_temperature_max       |  double  |
-| dest_rain_sum                       |  double  |
-| dest_cloud_cover_mean               |  double  |
-| dest_wind_direction_10m_dominant    | double   |
-|  flight_date                        | date     |
-|  day_of_month                       | integer  |
-|  origin                             | varchar  |
-|  dest_city_name                     | varchar  |
-|  pred_elapsed_time                  | double   |
-|  origin_weather_code                | double   |
-|  origin_apparent_temperature_max    | double   |
-|  origin_rain_sum                    | double   |
-|  origin_cloud_cover_mean            | double   |
-|  origin_wind_direction_10m_dominant | double   |
-|  dest_temperature_2m_max            | double   |
-|  dest_apparent_temperature_min      | double   |
-|  dest_showers_sum                   | double   |
-|  dest_wind_speed_10m_max            | double   |
-|  year                               |  integer |
-|  day_of_week                        |  integer |
-|  origin_city_name                   |  varchar |
-|  pred_dep_time                      |  bigint  |
-|  fl_distance                        |  double  |
-|  origin_temperature_2m_max          |  double  |
-|  origin_apparent_temperature_min    |  double  |
-|  origin_showers_sum                 |  double  |
-|  origin_wind_speed_10m_max          |  double  |
-|  origin_pressure_msl_mean           |  double  |
-|  dest_temperature_2m_min            |  double  |
-|  dest_precipitation_sum             |  double  |
-|  dest_snowfall_sum                  |  double  |
-|  dest_wind_gusts_10m_max            |  double  |
-| dest_pressure_msl_mean              |  double  |
+## Data Sources
 
----
+### Historical datasets
 
-### Delay Labels
+- [2024 U.S. flight dataset on Kaggle](https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024/data)
+- [U.S. airports dataset from HDX](https://data.humdata.org/dataset/ourairports-usa)
 
-- How is the binary delay label created?
-- What delay threshold is used?
-- How many examples are delayed versus not delayed?
-- Does the target include only carrier/weather/NAS/security/late-aircraft delay, or total arrival delay?
-- How could the label definition change future results?
+### Runtime and training APIs
 
----
+- [AviationStack](https://docs.apilayer.com/aviationstack/docs/api-documentation) supplies scheduled flight information at runtime.
+- [Open-Meteo](https://open-meteo.com) supplies daily weather data at runtime and during weather ingestion.
 
-## Graphed exploration in `backend/src/ml/training/figures/`
-- Correlation: `backend/src/ml/training/figures/correlation_chart.png`
-- Distribution: `backend/src/ml/training/figures/delay_distribution.png`
-- Missing values (none): `backend/src/ml/training/figures/missing_values.png`
+## Data Pipeline
 
----
+The pipeline is:
 
-## Baselines
+```text
+raw flight CSV + airport CSV
+        -> cleaned DuckDB tables
+        -> weather request queue
+        -> raw weather responses
+        -> model_dataset
+        -> training and evaluation
+        -> model.joblib
+```
 
-Scikit-learn's `DummyClassifier` was used as a baseline of which findings can be seen graohed in `/backend/src/ml/training/figures/dummy_strats.png`
+The main implementation files are:
 
-We see `most_frequent` at ~0.97, indicating that the base model successfully predicts the majority class (no significant delay) most often. This is no suprise if you look at the distribution of delays, and the size of the training dataset.
+| Stage | Files | Main output |
+| --- | --- | --- |
+| Clean source CSVs | [`csv_data_pipeline_funcs.py`](../backend/src/ml/csv_data_pipeline_funcs.py), [`csv_data_pipeline_runner.ipynb`](../backend/src/ml/csv_data_pipeline_runner.ipynb) | `flight_data`, `airport_data`, and `weather_req_table` |
+| Fetch and persist weather | [`weather_api_data_runner.py`](../backend/src/ml/weather_api_data_runner.py), [`weather_api_data_pipeline_funcs.py`](../backend/src/ml/weather_api_data_pipeline_funcs.py) | `weather_response_raw` |
+| Join features | `create_model_dataset` in [`weather_api_data_pipeline_funcs.py`](../backend/src/ml/weather_api_data_pipeline_funcs.py#L280) | `model_dataset` |
+| Train and evaluate | [`train.py`](../backend/src/ml/training/train.py), [`train_optimised.py`](../backend/src/ml/training/train_optimised.py), [`train.ipynb`](../backend/src/ml/training/train.ipynb) | `model.joblib` and training figures/results |
 
-For V1.1, I atrificually skew the train set to include a greater protion of significantly delayed flights. 
+The weather pipeline requests daily values for these fields at both airports: weather code, maximum and minimum temperature, apparent temperature, precipitation, rain, showers, snowfall, cloud cover, wind speed, wind gusts, wind direction, and mean sea-level pressure.
 
----
+### Schema validation
 
-## Training Pipeline
+DuckDB tables are created by SQL in the pipeline functions, not by an ORM or schema-management tool. The expected output shapes for the cleaned CSV tables and weather request table are represented by Pydantic models in [`base_models.py`](../backend/src/models/base_models.py), including `CleanedFlightDuckDBTableCols`, `CleanedAirportDuckDBTableCols`, and `WeatherRequestDuckDBTableCols`.
 
-Multiple pipelines have been created for each stage of data.
+Those models are used as validation contracts after table creation. They help catch column-name, order, and type drift in tests and pipeline checks, but they do not directly control the DuckDB schema in the way a migration tool or SQLModel table definition would.
 
-These being: Raw CSV -> DuckDB -> Refined DuckDB -> API Response(s) raw -> API Resposne Cleaned -> Final Training Dataset
+## Canonical Local Rebuild Path
 
-### File key
-| File Name | Premier Process | Output DuckDB Table Name(s)|
-|-------------------------------------------|-----------------|-------------|
-| **`backend/src/ml/csv_data_pipeline_funcs.py`** & **`backend/src/ml/csv_data_pipeline_runner.ipynb`** | Process raw CSVs to usable, efficiently organised, data | `flight_data` & `airport_data`|
-| **`backend/src/ml/weather_api_data_runner.py`** & **`backend/src/ml/weather_api_data_pipeline_funcs.py`** | Create and process `weather_req_table` for efficient and easy weather API requests and creation of `model_dataset`| `weather_response_raw` & `model_dataset` |
+The repository does not currently provide one command that downloads data, creates the DuckDB database, fetches weather, trains the model, and verifies every artifact. The canonical local rebuild path is still manual:
 
----
+> Note that:
+> - It is highly recommended that you use the trained model found [here]().
+> - If you chose to train your own and explore hyperparameter tuning(s), it will take hours, and maybe over a day, depending on your computer's specs. During which you will be unable to sue your computer to its intended ability. This is why it is recommended to use a remote instance. I used AWS's EC2, and used scp to copy results back to my computer.
 
-## Hyperparameter Tuning
+1. Download the source datasets listed in [Data Sources](#data-sources).
+2. Place the raw CSV files at:
 
-Scikit-learn's `RandomizedSearchCV` was used for hyperparameter tuning with 3 cross validation folds, and can be seen in the 'training' section of `/backend/src/ml/training/train.ipynb`.
+   ```text
+   backend/data/csv/flight_data_2024.csv
+   backend/data/csv/us-airports.csv
+   ```
 
-See the output of the bese params in `backend/src/ml/training/figures/train_results/best_results.txt`
+3. Run [`csv_data_pipeline_runner.ipynb`](../backend/src/ml/csv_data_pipeline_runner.ipynb). It is configured to create `backend/data/duck_database.duckdb` and populate:
 
-The training/ tuning was ran on EC2. I would highly recommend this, as otherwise it will take a long while.
+   - `flight_data`
+   - `airport_data`
+   - `weather_req_table`
 
----
+4. From the repository root, run the weather ingestion and model-dataset build:
 
-## Evaluation
+   ```bash
+   cd backend
+   uv run python src/ml/weather_api_data_runner.py
+   ```
 
-Resuts shown in `backend/src/ml/training/figures/train_results/best_results.txt` are as follows:
-| Metric    | Value |
-| --------- | ----- | 
-| Accuracy  | 0.780 |
+   This reads `weather_req_table`, writes raw Open-Meteo responses to `weather_response_raw`, and then creates `model_dataset`. It can take a long time because it performs many external API requests.
+
+5. Train the selected model:
+
+   ```bash
+   cd backend
+   uv run python src/ml/training/train_optimised.py
+   ```
+
+   This reads `model_dataset` and writes `backend/src/ml/model/model.joblib`. Use [`train.py`](../backend/src/ml/training/train.py) instead when you want to rerun the exploratory randomized-search workflow and regenerate evaluation figures.
+
+For a working prediction environment, these generated artifacts must exist:
+
+```text
+backend/data/duck_database.duckdb
+backend/src/ml/model/model.joblib
+```
+
+The database should contain at least these tables:
+
+```sql
+SHOW TABLES;
+SELECT COUNT(*) FROM flight_data;
+SELECT COUNT(*) FROM airport_data;
+SELECT COUNT(*) FROM weather_req_table;
+SELECT COUNT(*) FROM weather_response_raw;
+SELECT COUNT(*) FROM model_dataset;
+```
+
+`/predict` only requires `airport_data`, `weather_req_table`, and `model.joblib` at runtime, but the saved model is only reproducible from the same `model_dataset` shape used by training. If you replace the database or rebuild `model_dataset`, retrain `model.joblib` before trusting the reported metrics.
+
+## Model Features
+
+The classifier uses:
+
+- Schedule and route values: year, month, day of month, day of week, scheduled departure and arrival times, elapsed time, and route distance.
+- Origin weather values: daily weather code, temperatures, apparent temperatures, precipitation, rain, showers, snowfall, cloud cover, wind speed, wind gusts, wind direction, and pressure.
+- Destination weather values: the same daily weather fields as the origin.
+- Categorical values: flight date, origin IATA code, and destination IATA code.
+
+The training pipeline one-hot encodes the categorical values and passes the numeric values through unchanged. The inference path builds the same feature names before calling the saved pipeline.
+
+## Local Artifacts
+
+Generated data and model files are excluded from git by [`.gitignore`](../.gitignore). A working prediction environment needs:
+
+- `backend/data/duck_database.duckdb`, with `airport_data` and `weather_req_table` available to the prediction service.
+- `backend/src/ml/model/model.joblib`, containing the fitted scikit-learn pipeline.
+
+See [Model Metadata](model-metadata.md) for the source inputs, generated artifacts, model contract, evaluation summary, and backend package constraints associated with the documented model.
+
+To rebuild the data artifacts, obtain the source CSVs, run the CSV pipeline notebook or its functions to create `flight_data` and `airport_data`, run the weather ingestion runner, and let it create `model_dataset`. To train a replacement model, run `train.py` for the exploratory and randomized-search workflow or `train_optimised.py` with the selected parameters. These workflows make many API requests and can take a long time.
+
+## Training and Evaluation
+
+The final training script, [`train_optimised.py`](../backend/src/ml/training/train_optimised.py), reads from `model_dataset` with:
+
+```sql
+SELECT * FROM model_dataset LIMIT 1000000
+```
+
+It then drops rows containing nulls before building the feature matrix and target. The exact number of rows remaining after `dropna`, the train/test row counts, and the positive/negative class counts were printed or implied during training but are not currently persisted in a checked-in summary file.
+
+The training scripts use a stratified random 80/20 train/test split with `random_state=1`; this is not a time-based split. `train.py` uses `RandomizedSearchCV` with three cross-validation folds and optimises F1. `train_optimised.py` uses the selected random forest parameters to create the saved model.
+
+The dummy-baseline comparison in `train.py` evaluates `DummyClassifier` with `most_frequent`, `stratified`, and `uniform` strategies. The exact baseline scores are only stored in the generated `dummy_strats.png` figure, not in a machine-readable results file.
+
+The checked-in results file is [`best_results.txt`](../backend/src/ml/training/figures/train_results/best_results.txt). The figures are in [`backend/src/ml/training/figures/`](../backend/src/ml/training/figures/):
+
+- `correlation_chart.png`
+- `delay_distribution.png`
+- `missing_values.png`
+- `dummy_strats.png`
+
+The recorded evaluation values are:
+
+| Metric | Value |
+| --- | ---: |
+| Accuracy | 0.780 |
 | Precision | 0.420 |
-| Recall    | 0.528 |
-| F1        | 0.468 |
-| ROC AUC   | 0.758 |
-| CV F1     | 0.461 |
+| Recall | 0.528 |
+| F1 | 0.468 |
+| ROC AUC | 0.758 |
+| Cross-validation F1 | 0.461 |
 
-
-- Note of evaluation: CV F1 / F1 are similar, indicating that the models results/ outputs are a very replica of actual ability.
-
----
+These numbers describe the saved experiment, not a guarantee of future prediction quality. The `DummyClassifier` baseline also shows why accuracy alone is not sufficient for this imbalanced target.
 
 ## Testing
 
-- Find all tests clearly named/ labeled in `backend/tests/`
+Backend tests are in [`backend/tests/`](../backend/tests/). Run them from `backend` with:
 
----
+```bash
+uv run pytest
+```
 
-## Known Limitations
+The tests cover model validation, pipeline schema checks, utility functions, external API helpers, and the prediction service.
 
-*Limitations/ evaluations of data and training method*
-- 2024 data could have been more up to date
-    - However, note that this would have meant a more complex pipeline with more fragmented data
-- Weather data could have been more exact. Currently it's limited to daily sumaries.
-    - A change could mean quereing for the scheduled landing times slots (with a time buffer), or/ and maybe weather of the day(s) prior. This could indicate that a large weather event could have passed recently, or that quick-passing sever conditions could make the journey more dificult
-- Predictions are based purely on the weather
-    - Currently, the only histirical/ sitiational information to make a predictions is from the weather on the day, and the general flight information. If information, such as previous flights from that gate, day, or route, were given, prediction would likely be must more accurate.
+## Limitations
 
-**Summary**: Narrow data limited by depth (summaries or/and lack of historical comparison)
-
----
+- The historical data is from 2024 and may not represent later flight operations.
+- Weather is represented by daily summaries, not conditions at the exact scheduled departure or arrival time.
+- The feature set lacks operational and historical context such as aircraft rotation, gate activity, staffing, and route-level delay history.
+- The target combines several delay categories into one total and then discards the exact delay duration by thresholding it.
+- API coverage and plan limits can make data ingestion incomplete.
+- The training and ingestion workflows are expensive in time and external API calls.
 
 ## Future Work
-- Improve data quality
-- Cross reference/ gather more data from mroe sources
-- Migrate away from Aviation Stack API
-- Create a flight-saving pipeleine, which tracks current flights and fills in fields for training (gathers weather, historicals, etc...)
-- Orient the API to be for production, not a locally hosted project
 
-Keep eyes on [Issues](https://github.com/magnusrwn/flight_proj/issues) for the things on the todo list
+- Generate model metadata automatically when training writes a new artifact.
+- Add an automated data-preparation command if the manual rebuild path becomes too error-prone.
+- Compare the current model with time-based validation and stronger baselines.
+- Test alternative weather windows and operational features.
+- Consider a different live flight-data provider if AviationStack coverage or latency remains a problem.
+
+Track broader project tasks in the [GitHub issues](https://github.com/magnusrwn/flight_proj/issues).

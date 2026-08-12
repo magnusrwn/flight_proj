@@ -1,141 +1,113 @@
 # Architecture
 
-## Overview
+## Purpose
 
-This repo is essentially a full-stack ML project. It combines multiple data srouces, creates pipelines for that data, trains a model on it, and then integrates APIs for the service of that predictive model.
+This repository is a small full-stack machine-learning application. The frontend collects a flight lookup, the FastAPI backend assembles live and local data, and a scikit-learn classifier predicts whether the flight will be significantly delayed.
 
-It is important to understand that this is not a produciton full stack app. Its primary purpouse was to get me back upto scratch with literal typed code creation after a little break, learn a few new technologies, and imorove on existing ones. **Thus... This is meant to be run locally,** however, that does not mean that care has not been taken, or that algos are inneficient, or that testing wsa skiped out on... those things are still implemented.
+The project is primarily a learning and portfolio exercise. It is designed to run locally, which explains the deliberately small operational surface: there is no user account system, application-level rate limiting, deployment configuration, Docker setup, or production hosting workflow.
 
----
+## Scope and Boundaries
 
-## Goals and Non-Goals
+### In scope
 
-This is a significant delay predictor. It takes basic input of date, departure, destination, and time of departure and outputs a prediction on weather the flight will be significantly delayed. (As well as a raw resposne area for general data on the flight itself)
+- A React and TypeScript interface for one prediction workflow
+- A FastAPI backend with `GET /health` and `POST /predict`
+- Local DuckDB data access
+- AviationStack and Open-Meteo integrations
+- A pre-trained random forest classifier and the scripts used to train it
+- Unit and integration tests for backend logic
 
-This is not a looker. It's mainly, as prior stated, to refresh the core ideas of full-stack aps, scikitlearn, decently efficient algos creation, datacleaning, and error handeling/ responses, etc...
+### Out of scope for this iteration
 
-The depth of the data used was not great, as stated in  `docs/ml.md`, however the prediction has proven some utility.
+- Authentication and user accounts
+- Application-level rate limiting
+- Hosting, deployment, and infrastructure configuration
+- Docker or container orchestration
+- Background job management for the live prediction endpoint
 
-It should also be noted that the speed of the prediction is deeply slow. This is mainly due to the Aviation Stack API, which is both very slow on request, and incredibly slow on its site -- not to meantion the req/response(s). I'm affraid I can not fully recommend this API.
+These are boundaries, not missing setup instructions. The current project goal is local execution and learning.
 
----
+## Components
 
-## DuckDB Context
-
-**DuckBD stores all data of this project. This decision was made because:**
-- Using CSV's with pandas for xmillion rows is a RAM nightmare
-- Creating a local databse is a little annoying, and makes it harder to share as a project
-- I got $100+ a month quotes from AWS to host a bare-bones databse
-
-DuckDB has been amazing, and entirely fits the requirements/ goals of this project
-
----
+| Component | Responsibility | Main location |
+| --- | --- | --- |
+| Frontend | Collects and validates input, calls the backend, and renders prediction or error state. | [`frontend/src/App.tsx`](../frontend/src/App.tsx) |
+| API application | Defines routes, CORS, validation, and HTTP error translation. | [`backend/src/main.py`](../backend/src/main.py) |
+| Prediction service | Coordinates local lookup, external requests, feature construction, and model inference. | [`flight_prediction_sercive.py`](../backend/services/flight_prediction_sercive.py) |
+| External API clients | Builds requests for AviationStack and Open-Meteo. | [`backend/src/api/`](../backend/src/api/) |
+| Data layer | Stores airport, flight, weather, and model-ready tables in DuckDB. | [`backend/src/ml/`](../backend/src/ml/) |
+| Base Models | Defines request, response, and internal data models with Pydantic. | [`base_models.py`](../backend/src/models/base_models.py) |
 
 ## Runtime Flow
 
-**Successfull backend service flow:**
-Request at `/predict` -> Ensure handed airport codes exist in my dataset -> Send flight data API request to Aviation Stack API -> Match response of flights to the flight you requested -> Build flight data to match training dataset -> Match vars needed for Open-Meteo API -> Calculate flight distance from coords -> Open-Meteo API request -> Type check data against training data base model -> Predict -> Package and respond
+For a successful `POST /predict` request:
 
----
+1. FastAPI validates the request against `FlightPredRequest`.
+2. The service checks that the departure airport exists in the local `weather_req_table`.
+3. AviationStack is queried for future departures on the requested date and origin airport.
+4. The matching route and scheduled time are selected from the AviationStack response.
+5. The service joins the route to airport coordinates in the local `airport_data` table and derives date/time features.
+6. The route distance is calculated from the two coordinate pairs.
+7. Open-Meteo is queried for daily weather at the origin and destination.
+8. Weather and flight values are validated and assembled into the model feature contract.
+9. `model.joblib` predicts the binary delay class and, when supported, its probability.
+10. FastAPI returns the prediction and selected flight metadata.
+
+The public request and response contract is documented in the [API reference](api.md#post-predict).
+
+## Data and Storage
+
+DuckDB is used as a local file database at `backend/data/duck_database.duckdb`. It avoids loading large CSV files into memory during every operation and keeps the project self-contained.
+
+The pipeline creates or uses these important tables:
+
+- `flight_data`: cleaned historical flights and the component delay columns combined into `total_delay`.
+- `airport_data`: airport names, coordinates, and IATA codes.
+- `weather_req_table`: one weather request row per airport/date, with processing status.
+- `weather_response_raw`: raw weather responses keyed by airport and date.
+- `model_dataset`: historical flight rows joined with origin and destination weather features.
+
+The database is a generated local artifact and is excluded from git. See [ML local artifacts](ml.md#local-artifacts) for the pipeline that creates it.
 
 ## Frontend Architecture
 
-Frontend is a basic TS + React + Tailwind app. It is only responsible for sending the fech request, and type checking the request/ form input before sending the request.
+The frontend is intentionally thin:
 
-This is it.
+- [`FlightLookupForm.tsx`](../frontend/src/features/flight-lookup/FlightLookupForm.tsx) collects and validates form input.
+- [`frontend/src/lib/api.ts`](../frontend/src/lib/api.ts) makes the single `POST /predict` request.
+- [`PredictionResult.tsx`](../frontend/src/features/prediction-result/PredictionResult.tsx) renders success and error states.
+- [`frontend/src/types/api.ts`](../frontend/src/types/api.ts) contains the TypeScript request and response contracts.
+- [`App.tsx`](../frontend/src/App.tsx) owns request state and composes the page.
 
-As it is just meant to be run locally on this itteration of the project, there is no need for anything else.
+## Backend Architecture
 
-### App Structure
+The backend separates route handling from the prediction workflow. Pydantic models validate boundaries, API modules handle external requests, utility functions handle shared operations, and the service coordinates the end-to-end process. The model is loaded from `backend/src/ml/model/model.joblib` when a prediction is made.
 
-Frontend structire is very standard with no suprises. `App.tsx` holds the page, components are in `/components`, contracts are in `/types`, components are in `/components`. Nithing is suprising, everything says what it does on the tin.
+## Routes, Errors, and CORS
 
+The route list and exact response contract are maintained in the [API reference](api.md). In summary:
 
-### Components
+- `/health` returns `{"status": "ok"}` when the application is running.
+- `/predict` returns `FlightPredictionResponse` directly on success.
+- `/predict` raises HTTP errors for invalid input, missing data, external API failures, and model or local configuration failures.
+- CORS allows the Vite development origin `http://localhost:5173` in [`main.py`](../backend/src/main.py#L17).
 
-Reusable logic is stored in `backend/src/utils.py`. Althoguh, as a unique service application, it has few reused things -- the best example would be the `request_with_retry` function.
-
-
-### Types
-
-- **Backend:** All types exist as `Pydantic BaseModel(s)`. These live in `backend/src/models/base_models.py`
-- **Frontend:** All frontend contracts live in `frontend/src/types/api.ts`
-
-### Styling
-
-- Minimal style classes exist in `frontend/src/index.css`
-- Most styles are Tailwind, and thus in components/ App.tsx directly.
----
-
-## Routes
-
-This project has 2 routes:
-
-**`/haelth`**: Returns: {"status":"ok"}
-
-*and*
-
-**`/predict`**: Returning the base model `FuncResponse`. For more detals on the payload see [here](https://github.com/magnusrwn/flight_proj/blob/main/docs/api.md) with Ctrl/Cmnd + f: 'Response Contract'
-
----
+Internal service functions use `FuncResponse` to carry success, code, message, and data between layers. The public route translates failed service responses into HTTP exceptions rather than exposing that internal wrapper on successful responses.
 
 ## Logging
-- Logging is configured in `backend/src/logger_config.py` and outputs to `backend/logs`. These are excluded from git tracing, and thus not visable in the repo.
-- Logging occurs in FILL HERE AND CHECK
 
----
+Logging is configured in [`logger_config.py`](../backend/src/logger_config.py). API logs are written to `backend/logs/api.log`; the weather ingestion runner writes to `backend/logs/weather_ingestion.log`. The logs directory is local and excluded from git.
 
-## Environment Configuration
+## Performance
 
-Env config is explained [here](https://github.com/magnusrwn/flight_proj/blob/main/README.md). Use Ctrl/ Cmnd + f: '.env Configuration'
-
----
-
-## Error Handling
-
-All errors are handled the same. All responses are the same:
-- Responses fllow `FuncResponse` base model. Here, the main field being 'ok' will be set to false in the case of error.
-- Additional information will be handed in optional fields. This means status codes, error data packages, and error messages are all passed to the fronetned in a uniform way. It is simple, and it is quick, and fits exactly the needs of this project.
-
-HTTP errors are caught and hendled in the frontend
-
----
-
-## Deployment
-
-**Backend:**
-- [start in project root]
-- Run: `cd backend`
-- Run: `uv sync`
-- Run: `uv run uvicorn src.main:app --reload` *or* `uvicorn src.main:app --reload`
-
-**Frontend:**
-- [start in project root]
-- Run: `cd frontend`
-- Run: `npm i`
-- Run: `npm run dev`
----
-## CORS
-- Cors are setup on this app. Located in `backend/src/main.py`
-- It permits requests from `http://localhost:5173`, which is the address of the localy hosted Vite app
-
----
-
-## Performance Considerations
-
-Again, I must mention the service is slow. This is due to the Aviation Stack API response, and mainly, its response speed.
-
-As well as this, it should be repeated that I do not recommend training the models with the pre-made pipeline(s).
-
-If you are to train one arround the data I've prepped in the pipeline, you should do it on a remote computer. In this peoject I used AWS's EC2.
-
----
+Live predictions depend on at least one AviationStack request and two Open-Meteo requests, so network latency dominates the request time. The training and weather-ingestion pipelines can process large datasets and are more suitable for a machine with sufficient memory and CPU than for a small laptop. The project used an EC2 machine for long-running training and ingestion jobs, but no hosting setup is part of this repository.
 
 ## Known Limitations
 
-- Dates: The Aviation Stack API allows for some dates at some periods of the future... not all of them. Yes, I know thats vague, and yes I know it sucks, but I paid for my subscription already, and thus this project is built on it
-- Flights: The Aviation Stack API misses popular flights. This was made apparent when it did not have a flight I was going to take in the near future at the time of developing/ testing this app. So, dont plame my project, blame the API.
+- AviationStack coverage and future-date availability are outside this project's control, and some popular flights may not be returned.
+- The prediction uses daily weather summaries rather than weather at the scheduled departure or arrival time.
+- The feature set does not include operational context such as previous flights on the same aircraft, gate congestion, crew availability, or route history.
+- The model was trained on 2024 U.S. flight data, so performance may not transfer to later periods or other markets.
+- The local database and model artifact must be prepared separately because generated data and `*.joblib` files are ignored by git.
 
-In all seriousness thoguh, the API is not horrific, however it was *greatly* dissapointing. One major itteration of this project would be to itterate away from this API, and to another.
-
-Todos for this project will be kept [here](https://github.com/magnusrwn/flight_proj)
+The [ML documentation](ml.md#limitations) contains the modelling-specific limitations and future work.

@@ -15,7 +15,7 @@ SIGNIFICANT_DELAY_MINUTES = 25
 
 con = ddb.connect(DUCKDB_PATH)
 data_df = con.sql("""
-    SELECT * FROM model_dataset LIMIT 5000000
+    SELECT * FROM model_dataset LIMIT 1000000
 """).df()
 con.close()
 
