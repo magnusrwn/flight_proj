@@ -1,11 +1,4 @@
-# Machine Learning
-⚠️ delete this top-doc line summary after, of course...
-Use this file as a guided draft. Answer the questions under each heading, then replace the prompts with your final explanation. It is fine to start with short bullet answers.
-
----
-
 ## Overview
-
 - This model takes in the weather and flight data, and outputs a prediction on the flight being significantly delayed (>25min), or not.
 - The Model is used within the `flight_prediction_sercive.py` file which holds the main function/ logic for the endpoint `/predict`
 - The model is downloadable in the g-drive link, located [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
@@ -13,10 +6,20 @@ Use this file as a guided draft. Answer the questions under each heading, then r
 
 ---
 
-## Model setup:
-- Download my ML Model from Google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing)
-- Open a new terminal and cd to the project root
-- Run the command `mv [PATH-TO-DOWNLOADED-MODEL].joblib backend/src/ml/model/model.joblib`
+## Model setup (if you want to train it -- not reccomended):
+- Open a new terminal and `cd` to `/backend`, if not already there
+- Install `uv` if you do not have it alrady
+- Run the command `uv sync`
+- Ensure your .env is setup (see '.env Configuration' [here](https://github.com/magnusrwn/flight_proj/blob/main/README.md) on how to do that)
+- Run pipeline file(s):
+    - CSV pipeline runner(1st): `backend/src/ml/csv_data_pipeline_funcs.py`
+    - **Note:**: For the following 2 steps: I ran these on EC2 with tmux so I did not have to wait for the API responses/ training. Do as you whish.
+    - Weather API runner (2nd): `backend/src/ml/weather_api_data_runner.py`
+    - Run `backend/src/ml/training/train.ipynb` to replicate my process exactly or `backend/src/ml/training/train_optimised.py` to train the optimised model
+
+
+### **or**
+Just download it from google drive [here](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing). Then place it in `backend/src/ml/model/` keeping its name as `model.joblib`
 
 ---
 
@@ -26,29 +29,6 @@ For predicting an exact delay, regression would usually be the prefered way. How
 Thus, I thoguht that making hte delay a binary would be beneficial for the training results, allowing for a higher probability of actual utility. This change can be seen clearly in `/backend/src/ml/train/train.ipynb`.
 
 The model preformed better than taking the avg when the Y was turned into a binary and the model switched to a classifier however, still has room for improvement.
-
----
-
-## Success Metrics
-
-> NOTE: start ec2 and see logs for this
-- Which metrics do you use to judge the model?
-- Why are accuracy, precision, recall, F1, and ROC AUC useful or limited here?
-- Which metric matters most for this project, and why?
-- What baseline should the trained model beat?
-- What score would be good enough for a demo or portfolio project?
-- How should class imbalance affect metric choice?
-
----
-
-## Data Cleaning
-> Explain the data clean process
-- What cleaning steps happen before model training?
-- Which rows are removed and why?
-- Which columns are cast to new types?
-- How are missing delay values handled?
-- How are schema mismatches detected?
-- What data cleaning choices could bias the model?
 
 ---
 
@@ -186,7 +166,7 @@ Descriptions of important datasets throughout the project
 
 ---
 
-## Graohed exploration in `backend/src/ml/training/figures/`
+## Graphed exploration in `backend/src/ml/training/figures/`
 - Correlation: `backend/src/ml/training/figures/correlation_chart.png`
 - Distribution: `backend/src/ml/training/figures/delay_distribution.png`
 - Missing values (none): `backend/src/ml/training/figures/missing_values.png`
@@ -210,87 +190,65 @@ Multiple pipelines have been created for each stage of data.
 These being: Raw CSV -> DuckDB -> Refined DuckDB -> API Response(s) raw -> API Resposne Cleaned -> Final Training Dataset
 
 ### File key
-| File Name | Premier Process | Output Table Name(s)|
+| File Name | Premier Process | Output DuckDB Table Name(s)|
 |-------------------------------------------|-----------------|-------------|
-|`backend/src/ml/csv_data_pipeline_funcs.py` & `backend/src/ml/csv_data_pipeline_runner.ipynb`| Process raw CSVs to usable, efficiently organised, data | `flight_data` & `airport_data`|
-| | | | |
-| | | | |
+| **`backend/src/ml/csv_data_pipeline_funcs.py`** & **`backend/src/ml/csv_data_pipeline_runner.ipynb`** | Process raw CSVs to usable, efficiently organised, data | `flight_data` & `airport_data`|
+| **`backend/src/ml/weather_api_data_runner.py`** & **`backend/src/ml/weather_api_data_pipeline_funcs.py`** | Create and process `weather_req_table` for efficient and easy weather API requests and creation of `model_dataset`| `weather_response_raw` & `model_dataset` |
+
+---
 
 ## Hyperparameter Tuning
 
-- What search method is used?
-- Which parameters are tuned?
-- How many iterations and cross-validation folds are used?
-- Which scoring metric selects the best model?
-- How did you keep tuning affordable or fast enough?
-- What parameters would you tune next?
+Scikit-learn's `RandomizedSearchCV` was used for hyperparameter tuning with 3 cross validation folds, and can be seen in the 'training' section of `/backend/src/ml/training/train.ipynb`.
+
+See the output of the bese params in `backend/src/ml/training/figures/train_results/best_results.txt`
+
+The training/ tuning was ran on EC2. I would highly recommend this, as otherwise it will take a long while.
+
+---
 
 ## Evaluation
 
-- Which dataset is used for final evaluation?
-- What are the latest recorded metric values?
-- How do the results compare to the baseline?
-- Which mistakes matter most: false positives or false negatives?
-- Are evaluation results reproducible?
-- What does the model do well, and where does it struggle?
+Resuts shown in `backend/src/ml/training/figures/train_results/best_results.txt` are as follows:
+| Metric    | Value |
+| --------- | ----- | 
+| Accuracy  | 0.780 |
+| Precision | 0.420 |
+| Recall    | 0.528 |
+| F1        | 0.468 |
+| ROC AUC   | 0.758 |
+| CV F1     | 0.461 |
 
-### Classification Metrics
 
-- What are accuracy, precision, recall, F1, and ROC AUC for the selected model?
-- Which metric is most important for interpreting this model?
-- Are metrics calculated with `zero_division=0`?
-- How should readers interpret a high or low precision/recall?
+- Note of evaluation: CV F1 / F1 are similar, indicating that the models results/ outputs are a very replica of actual ability.
 
-### Calibration
-
-- Does `predict_proba` produce well-calibrated probabilities?
-- Have you checked calibration curves or reliability diagrams?
-- Should the frontend present the probability as confidence?
-- Is a probability threshold other than `0.5` more useful?
-- What work is needed before claiming the probability is reliable?
-
-## Inference Pipeline
-
-- What data does the backend collect at prediction time?
-- How is AviationStack data converted into model fields?
-- How is Open-Meteo data converted into model fields?
-- How are categorical and numeric fields assembled?
-- What dataframe columns are passed into the model?
-- What happens if inference input does not match the training schema?
-
-## Reproducibility
-
-- Which package versions matter?
-- Is dependency locking handled by `uv.lock`?
-- Which random seeds are set?
-- Which data files are required to reproduce training?
-- Are notebooks and scripts kept in sync?
-- Can someone rebuild the DuckDB tables and model from scratch using docs alone?
+---
 
 ## Testing
 
-- Which tests cover the CSV pipeline?
-- Which tests cover schema validation?
-- Which tests cover weather API behavior?
-- Which tests cover the prediction service?
-- Are model training and inference tested separately?
-- What tests would catch a feature-name mismatch?
-- What manual checks should be done after retraining?
+- Find all tests clearly named/ labeled in `backend/tests/`
+
+---
 
 ## Known Limitations
 
-- What are the biggest weaknesses of the training data?
-- Are future flight schedules always available through the external API?
-- Does the model generalize beyond 2024 US flight data?
-- Does the model know about real-time operational issues?
-- Are weather forecasts good enough for the prediction date?
-- Which limitations should be made clear to users?
+*Limitations/ evaluations of data and training method*
+- 2024 data could have been more up to date
+    - However, note that this would have meant a more complex pipeline with more fragmented data
+- Weather data could have been more exact. Currently it's limited to daily sumaries.
+    - A change could mean quereing for the scheduled landing times slots (with a time buffer), or/ and maybe weather of the day(s) prior. This could indicate that a large weather event could have passed recently, or that quick-passing sever conditions could make the journey more dificult
+- Predictions are based purely on the weather
+    - Currently, the only histirical/ sitiational information to make a predictions is from the weather on the day, and the general flight information. If information, such as previous flights from that gate, day, or route, were given, prediction would likely be must more accurate.
+
+**Summary**: Narrow data limited by depth (summaries or/and lack of historical comparison)
+
+---
 
 ## Future Work
+- Improve data quality
+- Cross reference/ gather more data from mroe sources
+- Migrate away from Aviation Stack API
+- Create a flight-saving pipeleine, which tracks current flights and fills in fields for training (gathers weather, historicals, etc...)
+- Orient the API to be for production, not a locally hosted project
 
-- What would improve data quality?
-- What would improve model accuracy?
-- What would improve explainability?
-- What would improve request-time performance?
-- What would make retraining easier?
-- What would be needed for a production-ready ML workflow?
+Keep eyes on [Issues](https://github.com/magnusrwn/flight_proj/issues) for the things on the todo list
