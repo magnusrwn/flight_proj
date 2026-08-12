@@ -71,6 +71,10 @@ Those models are used as validation contracts after table creation. They help ca
 
 The repository does not currently provide one command that downloads data, creates the DuckDB database, fetches weather, trains the model, and verifies every artifact. The canonical local rebuild path is still manual:
 
+> Note that:
+> - It is highly recommended that you use the trained model found [here]().
+> - If you chose to train your own and explore hyperparameter tuning(s), it will take hours, and maybe over a day, depending on your computer's specs. During which you will be unable to sue your computer to its intended ability. This is why it is recommended to use a remote instance. I used AWS's EC2, and used scp to copy results back to my computer.
+
 1. Download the source datasets listed in [Data Sources](#data-sources).
 2. Place the raw CSV files at:
 
