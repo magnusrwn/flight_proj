@@ -1,5 +1,8 @@
 ## Overview
-BRIEF NOTE ON API
+
+- This app holds one API main endpoint, being: `/predict` (POST)
+- This endpoint has no real auth/ limiting as the project is intended for local host use only
+- This endpoint depends on multiple external APIs, which have been integrated into the service funtion.
 
 ---
 
