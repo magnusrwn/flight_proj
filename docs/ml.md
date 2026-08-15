@@ -4,7 +4,7 @@
 
 The model predicts whether a flight will have a significant delay. It uses historical flight data, route and schedule features, and daily weather features for the origin and destination airports.
 
-The trained model is loaded by [`predict_delay_from_model`](../backend/services/flight_prediction_sercive.py#L362) during `POST /predict`. The input contract is represented by [`MLModelInput`](../backend/src/models/base_models.py#L114). A pre-trained model is available from [Google Drive](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing). Known model lineage is recorded in [Model Metadata](model-metadata.md).
+The trained model is loaded by [`predict_delay_from_model`](../backend/services/flight_prediction_service.py#L362) during `POST /predict`. The input contract is represented by [`MLModelInput`](../backend/src/models/base_models.py#L114). A pre-trained model is available from [Google Drive](https://drive.google.com/file/d/1KRhr2aaH5HY-2BNteX0C7LtocAqY2zGC/view?usp=sharing). Known model lineage is recorded in [Model Metadata](model-metadata.md).
 
 ## Target Definition
 

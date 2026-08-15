@@ -33,7 +33,7 @@ These are boundaries, not missing setup instructions. The current project goal i
 | --- | --- | --- |
 | Frontend | Collects and validates input, calls the backend, and renders prediction or error state. | [`frontend/src/App.tsx`](../frontend/src/App.tsx) |
 | API application | Defines routes, CORS, validation, and HTTP error translation. | [`backend/src/main.py`](../backend/src/main.py) |
-| Prediction service | Coordinates local lookup, external requests, feature construction, and model inference. | [`flight_prediction_sercive.py`](../backend/services/flight_prediction_sercive.py) |
+| Prediction service | Coordinates local lookup, external requests, feature construction, and model inference. | [`flight_prediction_service.py`](../backend/services/flight_prediction_service.py) |
 | External API clients | Builds requests for AviationStack and Open-Meteo. | [`backend/src/api/`](../backend/src/api/) |
 | Data layer | Stores airport, flight, weather, and model-ready tables in DuckDB. | [`backend/src/ml/`](../backend/src/ml/) |
 | Base Models | Defines request, response, and internal data models with Pydantic. | [`base_models.py`](../backend/src/models/base_models.py) |

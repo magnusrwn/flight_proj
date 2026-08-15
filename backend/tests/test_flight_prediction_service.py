@@ -8,7 +8,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if BACKEND_ROOT not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from services.flight_prediction_sercive import (
+from services.flight_prediction_service import (
     MODEL_FEATURES,
     WEATHER_DAILY_FIELDS,
     build_flight_data,
@@ -18,7 +18,7 @@ from services.flight_prediction_sercive import (
     get_nested_str,
     match_flight_to_request,
     predict_delay_from_model,
-    predict_flight__service,
+    predict_flight_service,
 )
 from src.models.base_models import (
     FuncResponse,
@@ -159,7 +159,7 @@ class FlightPredictionServiceTests(unittest.TestCase):
 
     def test_build_flight_distance__clean_input(self):
         with patch(
-            "services.flight_prediction_sercive.calculate_distance_miles",
+            "services.flight_prediction_service.calculate_distance_miles",
             return_value=2475,
         ):
             response = build_flight_distance(
@@ -220,7 +220,7 @@ class FlightPredictionServiceTests(unittest.TestCase):
             scheduledDepartureTime="09:00",
         )
 
-        with patch("services.flight_prediction_sercive.ddb.connect", return_value=fake_connection):
+        with patch("services.flight_prediction_service.ddb.connect", return_value=fake_connection):
             response = build_flight_data(
                 sch_dep_time="09:00",
                 sch_arr_time="12:30",
@@ -260,7 +260,7 @@ class FlightPredictionServiceTests(unittest.TestCase):
 
         self.assertTrue(response.ok)
         self.assertEqual(response.data["numerical_input"]["fl_distance"], 2475)
-        self.assertEqual(response.data["catagorical_input"]["origin"], "JFK")
+        self.assertEqual(response.data["categorical_input"]["origin"], "JFK")
         self.assertEqual(response.data["numerical_input"]["origin_weather_code"], 1.0)
         self.assertEqual(response.data["numerical_input"]["dest_weather_code"], 2.0)
 
@@ -294,7 +294,7 @@ class FlightPredictionServiceTests(unittest.TestCase):
             dest_weather_data=self.make_weather_payload(2.0),
         )
 
-        with patch("services.flight_prediction_sercive.joblib.load", return_value=FakeModel()):
+        with patch("services.flight_prediction_service.joblib.load", return_value=FakeModel()):
             response = predict_delay_from_model(model_input.data)
 
         self.assertTrue(response.ok)
@@ -323,15 +323,15 @@ class FlightPredictionServiceAsyncTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch(
-                "services.flight_prediction_sercive.is_in_table",
+                "services.flight_prediction_service.is_in_table",
                 return_value=FuncResponse(ok=True, data=True),
             ),
             patch(
-                "services.flight_prediction_sercive.fetch_scheduled_flight_info",
+                "services.flight_prediction_service.fetch_scheduled_flight_info",
                 return_value=RequestWithRetryResponse(success={"data": {"bad": "shape"}}),
             ),
         ):
-            response = await predict_flight__service(request)
+            response = await predict_flight_service(request)
 
         self.assertFalse(response.ok)
         self.assertEqual(response.code, 502)

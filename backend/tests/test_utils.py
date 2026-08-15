@@ -45,7 +45,7 @@ class UtilsTests(unittest.TestCase):
         r = is_in_table(
             table_name="weather_req_table_ERR_TABLE_NAME",
             column="code",
-            airprot_code="JFK"
+            airport_code="JFK"
         )
         self.assertFalse(r.ok)
 
@@ -53,7 +53,7 @@ class UtilsTests(unittest.TestCase):
         r = is_in_table(
             table_name="weather_req_table",
             column="code",
-            airprot_code="JFK"
+            airport_code="JFK"
         )
         self.assertTrue(r.ok)
 
@@ -61,7 +61,7 @@ class UtilsTests(unittest.TestCase):
         r = is_in_table(
             table_name="weather_req_table",
             column="code",
-            airprot_code="LHR"
+            airport_code="LHR"
         )
         self.assertFalse(r.data)
          

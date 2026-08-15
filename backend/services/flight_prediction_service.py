@@ -20,7 +20,7 @@ from src.models.base_models import (
     FlightDistanceResponse,
     FlightPredictionResponse,
     FuncResponse,
-    MLModelCatagoricalInput,
+    MLModelCategoricalInput,
     MLModelInput,
     MLModelNumericInput,
     PresentError,
@@ -337,14 +337,14 @@ def build_ml_model_input(
             **origin_weather_resp.data,
             **dest_weather_resp.data,
         )
-        catagorical_input = MLModelCatagoricalInput(
+        categorical_input = MLModelCategoricalInput(
             flight_date=flight_data["flight_date"],
             origin=flight_data["origin"],
             dest=flight_data["dest"],
         )
         model_input = MLModelInput(
             numerical_input=numerical_input,
-            catagorical_input=catagorical_input,
+            categorical_input=categorical_input,
         )
         return FuncResponse(
             ok=True,
@@ -362,11 +362,11 @@ def build_ml_model_input(
 def predict_delay_from_model(model_input: dict[str, Any]) -> FuncResponse:
     try:
         numerical_input = model_input["numerical_input"]
-        catagorical_input = model_input["catagorical_input"]
-        if not isinstance(numerical_input, dict) or not isinstance(catagorical_input, dict):
+        categorical_input = model_input["categorical_input"]
+        if not isinstance(numerical_input, dict) or not isinstance(categorical_input, dict):
             return FuncResponse(ok=False, code=500, message="ML model input payload was invalid.", data=str(model_input))
 
-        model_row = {**numerical_input, **catagorical_input}
+        model_row = {**numerical_input, **categorical_input}
         model_df = pd.DataFrame([model_row], columns=MODEL_FEATURES)
         model_df["pred_elapsed_time"] = model_df["pred_elapsed_time"].astype(float)
         model_df["fl_distance"] = model_df["fl_distance"].astype(float)
@@ -398,7 +398,7 @@ def predict_delay_from_model(model_input: dict[str, Any]) -> FuncResponse:
         return FuncResponse(ok=False, code=500, message="ML model prediction failed.", data=str(e))
 
 # ==================== Service ====================
-async def predict_flight__service(body:FlightPredRequest) -> FuncResponse:
+async def predict_flight_service(body:FlightPredRequest) -> FuncResponse:
     logger.info("SERVICE START:send_flight__service")
 
 
@@ -407,7 +407,7 @@ async def predict_flight__service(body:FlightPredRequest) -> FuncResponse:
     is_in_table_resp:FuncResponse = is_in_table(
         table_name="weather_req_table",
         column="code",
-        airprot_code=body.depIataCode
+        airport_code=body.depIataCode
     )
     if not is_in_table_resp.ok:
         logger.info("SERVICE END:send_flight__service -- FUNC:is_in_table -- DETAIL: %s", is_in_table_resp.message)
