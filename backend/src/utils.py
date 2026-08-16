@@ -19,10 +19,50 @@ from src.models.base_models import(
 )
 
 # ======================================== CONSTS ========================================
+API_KEY_NAMES_IN_REQUESTS = ["access_key","apikey"]
 DUCKDB_PATH = BACKEND_ROOT/"data/duck_database.duckdb"
 logger = logging.getLogger(__name__)
 
 # ======================================== FUNCTIONS ========================================
+def redact_api_keys_for_request(url:str, head:dict | None = None, params:dict | None = None ) -> tuple[str, dict | None, dict | None]:
+    '''
+    returns the logable versions of strings with redactions of API keys used in this proj
+    '''
+    redacted_head = None
+    redacted_params = None
+    # check url
+    redacted_url = url
+    for key_name in API_KEY_NAMES_IN_REQUESTS:
+        # find the index where the api key begins
+        start_index = redacted_url.find(key_name)
+        if start_index > -1 :
+            url_start = redacted_url[:start_index]
+            # remove all chars before the beggining of the api key match 
+            chopped_url = redacted_url[start_index:]
+            # find the end, if their is one
+            end_index = chopped_url.find("&")
+            if end_index > -1:
+                url_end = chopped_url[end_index:]
+                redacted_url = url_start + f"{key_name}=REDACTED" + url_end
+            else:
+                redacted_url = url_start + f"{key_name}=REDACTED"
+    # check head
+    if head is not None:
+        redacted_head = head.copy()
+        for key in redacted_head:
+            if key in API_KEY_NAMES_IN_REQUESTS:
+                redacted_head[key] = "REDACTED"
+
+    # check params
+    if params is not None:
+        redacted_params = params.copy()
+        for key in redacted_params:
+            if key in API_KEY_NAMES_IN_REQUESTS:
+                redacted_params[key] = "REDACTED"
+
+
+    return redacted_url, redacted_head, redacted_params
+
 def calculate_distance_miles(
     origin_lat: float,
     origin_long: float,
@@ -68,6 +108,9 @@ async def request_with_retry(
     retry_delay_seconds = 3
     retryable_statuses = {408, 429, 500, 502, 503, 504}
 
+    # grab logable items
+    logable_url, logable_headers, logable_params = redact_api_keys_for_request(url, head, params)
+    
     headers = dict(head or {})
     if compress:
         headers.setdefault("Accept-Encoding", compress)
@@ -78,7 +121,7 @@ async def request_with_retry(
     if request_id:
         headers.setdefault("X-Request-ID", request_id)
 
-    logger.info("REQUESTING: %s\n%s\n%s", url, body, headers)
+    logger.info("REQUESTING: %s\n%s\n%s", logable_url, body, logable_headers)
     async with httpx.AsyncClient(
         timeout=timeout,
         follow_redirects=redirect,
@@ -95,7 +138,7 @@ async def request_with_retry(
                 )
             except httpx.HTTPError as exc:
                 if attempt == max_attempts - 1:
-                    logger.info("REQUEST FAILED -- MAX ATTAMPTS HIT:: url:%s\n headers:%s body:%s\nparams:%s", url, headers, body, params)
+                    logger.info("REQUEST FAILED -- MAX ATTAMPTS HIT:: url:%s\n headers:%s body:%s\nparams:%s", logable_url, logable_headers, body, logable_params)
                     return RequestWithRetryResponse(
                         error=PresentError(
                             code=408,
@@ -106,14 +149,14 @@ async def request_with_retry(
 
                 # Backoff prevents a burst of retries from worsening a rate limit.
                 await asyncio.sleep(retry_delay_seconds * (2**attempt))
-                logger.info("RETRY-COUNT %s RETRYING REQUEST:: url:%s\n headers:%s body:%s\nparams:%s", attempt, url, headers, body, params)
+                logger.info("RETRY-COUNT %s RETRYING REQUEST:: url:%s\n headers:%s body:%s\nparams:%s", attempt, logable_url, logable_headers, body, logable_params)
                 continue
 
             if response.is_success:
-                logger.info("RESPONSE SUCCESS:: url:%s\n headers:%s body:%s\nparams:%s", url, headers, body, params)
+                logger.info("RESPONSE SUCCESS:: url:%s\n headers:%s body:%s\nparams:%s", logable_url, logable_headers, body, logable_params)
                 try:
                     payload = response.json()
-                    logger.info("EXTRACTED RESPONSE:: url:%s\n headers:%s body:%s\nparams:%s", url, headers, body, params)
+                    logger.info("EXTRACTED RESPONSE:: url:%s\n headers:%s body:%s\nparams:%s", logable_url, logable_headers, body, logable_params)
                 except ValueError:
                     payload = {"content": response.text}
 
@@ -122,7 +165,7 @@ async def request_with_retry(
                 return RequestWithRetryResponse(success={"data": payload})
 
             if response.status_code not in retryable_statuses or attempt == max_attempts - 1:
-                logger.info("REQUEST FAILED WITH STATUS CODE %s OR HIT MAX RETRYS: %s \n %s \n %s\n %s", str(response.status_code), url, body, headers, params)
+                logger.info("REQUEST FAILED WITH STATUS CODE %s OR HIT MAX RETRYS: %s \n %s \n %s\n %s", str(response.status_code), logable_url, body, logable_headers, logable_params)
                 return RequestWithRetryResponse(
                     error=PresentError(
                         code=int(response.status_code),
@@ -134,7 +177,7 @@ async def request_with_retry(
             await asyncio.sleep(retry_delay_seconds * (2**attempt))
 
     # The loop always returns; this keeps the type contract explicit for linters.
-    logger.info("REQUEST WITH RETRY ENDED UNEXPECTEDLY: %s\n%s\n%s\n%s", url, body, headers, params)
+    logger.info("REQUEST WITH RETRY ENDED UNEXPECTEDLY: %s\n%s\n%s\n%s", logable_url, body, logable_headers, logable_params)
     return RequestWithRetryResponse(
         error=PresentError(code=500, description="Uncaught error in 'request_with_retry'")
     )
