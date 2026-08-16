@@ -111,7 +111,7 @@ class FlightPredictionResponse(BaseModel):
     distance: FlightDistanceResponse
     aviationApiData: MatchedAviationAPIDataResponse
 
-class MLModelCatagoricalInput(BaseModel):
+class MLModelCategoricalInput(BaseModel):
     flight_date: date
     origin: str = Field(max_length=3, min_length=3)
     dest: str = Field(max_length=3, min_length=3)
@@ -156,4 +156,4 @@ class MLModelNumericInput(BaseModel):
 
 class MLModelInput(BaseModel):
     numerical_input: MLModelNumericInput
-    catagorical_input: MLModelCatagoricalInput
+    categorical_input: MLModelCategoricalInput

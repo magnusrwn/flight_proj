@@ -36,7 +36,7 @@ This file records the known lineage for the checked documentation and downloadab
 | Training source | `model_dataset` in `backend/data/duck_database.duckdb` |
 | Runtime model path | `backend/src/ml/model/model.joblib` |
 | Runtime input model | [`MLModelInput`](../backend/src/models/base_models.py#L114) |
-| Runtime prediction function | [`predict_delay_from_model`](../backend/services/flight_prediction_sercive.py#L362) |
+| Runtime prediction function | [`predict_delay_from_model`](../backend/services/flight_prediction_service.py#L362) |
 
 The feature list is documented in [Model Features](ml.md#model-features). The canonical local rebuild sequence is documented in [Canonical Local Rebuild Path](ml.md#canonical-local-rebuild-path).
 

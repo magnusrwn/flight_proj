@@ -139,7 +139,7 @@ async def request_with_retry(
         error=PresentError(code=500, description="Uncaught error in 'request_with_retry'")
     )
 
-def is_in_table(table_name:str, column:str, airprot_code:str) -> FuncResponse:
+def is_in_table(table_name:str, column:str, airport_code:str) -> FuncResponse:
     con = None
     try:
         con = ddb.connect(DUCKDB_PATH)
@@ -152,10 +152,10 @@ def is_in_table(table_name:str, column:str, airprot_code:str) -> FuncResponse:
             WHERE {column} = ?
             )
         """,
-        [airprot_code]
+        [airport_code]
         ).fetchone()
 
-        logger.info("READ DUCK-DB TABLE:%s, COLUMN:%s, FOR: %s", table_name, column, airprot_code)
+        logger.info("READ DUCK-DB TABLE:%s, COLUMN:%s, FOR: %s", table_name, column, airport_code)
         return FuncResponse(
             ok=True,
             data=r[0]
